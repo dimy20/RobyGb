@@ -30,10 +30,10 @@
 #define HRAM_SIZE 127
 
 struct Gb_memory{
-	BYTE cartridge_rom_bank0[ROM_BANK_SIZE];
-	BYTE cartdidge_rom_bank1n[ROM_BANK_SIZE];
+	BYTE rom_bank0[ROM_BANK_SIZE];
+	BYTE rom_bank1n[ROM_BANK_SIZE];
 	BYTE vram[VRAM_SIZE];
-	BYTE cartridge_exram[VRAM_SIZE];
+	BYTE ex_ram[VRAM_SIZE];
 	BYTE work_ram_bank0[WORK_RAM_SIZE];
 	BYTE work_ram_bank1n[WORK_RAM_SIZE];
 	BYTE work_ram_mirror[(WORK_RAM_SIZE * 2) - 512]; // prohibited
@@ -42,4 +42,17 @@ struct Gb_memory{
 	BYTE io_registers[IO_RANGE_SIZE];
 	BYTE hram[HRAM_SIZE];
 	BYTE ie_register;
+};
+
+// Memory managment unit.
+class Mem_mu{
+	public:
+		Mem_mu();
+		BYTE read(WORD addr);
+		void write(WORD addr, BYTE value);
+	private:
+		void write_wram_mirror(WORD addr, BYTE value);
+		void write_wram(WORD addr, BYTE value);
+	private:
+		struct Gb_memory m_memory;
 };
