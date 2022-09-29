@@ -12,7 +12,7 @@
  * <D000-------------DFFF> 4kb work ram(wram) bank1-n: Only bank 1 in non-cgb mode
  *													   Switchable in bank 1-6 in cgb
  *													   mode.
- * <E000-------------FDFF> Mirror of C000-DFFF(echo ram):Use of this area is prohibited.
+ * <E000-------------FDFF> Mirror of C000-DDFF(echo ram):Use of this area is prohibited.
  * <FE00-------------FE9F> Sprite attribute table.(OAM)
  * <FEA0-------------FEFF> Not usable, use of this area is prohibited.
  * <FF00-------------FF7F> I/0 registers.
@@ -34,9 +34,9 @@ struct Gb_memory{
 	BYTE rom_bank1n[ROM_BANK_SIZE];
 	BYTE vram[VRAM_SIZE];
 	BYTE ex_ram[VRAM_SIZE];
-	BYTE work_ram_bank0[WORK_RAM_SIZE];
-	BYTE work_ram_bank1n[WORK_RAM_SIZE];
-	BYTE work_ram_mirror[(WORK_RAM_SIZE * 2) - 512]; // prohibited
+	BYTE wram_bank0[WORK_RAM_SIZE];
+	BYTE wram_bank1n[WORK_RAM_SIZE];
+	BYTE wram_mirror[(WORK_RAM_SIZE * 2) - 512]; // prohibited
 	BYTE sprite_attr_table[SPRITE_ATTR_SIZE];
 	BYTE unused_region[UNUSED_REGION_SIZE]; // prohibited
 	BYTE io_registers[IO_RANGE_SIZE];
@@ -53,6 +53,10 @@ class Mem_mu{
 	private:
 		void write_wram_mirror(WORD addr, BYTE value);
 		void write_wram(WORD addr, BYTE value);
+		BYTE read_wram_mirror(WORD addr);
 	private:
 		struct Gb_memory m_memory;
+		// memory banking controller
+		bool m_mbc1 = false; 
+		bool m_mbc2 = false;
 };
