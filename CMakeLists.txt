@@ -5,8 +5,19 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE debug)
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+include(GoogleTest)
+add_subdirectory(tests)
+
+add_library(Gb_Emulator src/Memory.cpp)
+target_include_directories(Gb_Emulator PUBLIC 
+						  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_executable(${PROJECT_NAME}
+				src/main.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
 						  ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(${PROJECT_NAME} GL)
+
+target_link_libraries(${PROJECT_NAME} Gb_Emulator GL)
+
+enable_testing()
