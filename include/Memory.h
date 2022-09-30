@@ -1,5 +1,7 @@
 #pragma once
+#include <cassert>
 #include "Gb_types.h"
+#include "Gb_cartridge.h"
 /* General Memory Map
  * The Gameboy has a 16 bit address bus, it is used for ROM, RAM and I/O.
  *
@@ -48,15 +50,15 @@ struct Gb_memory{
 class Mem_mu{
 	public:
 		Mem_mu();
-		BYTE read(WORD addr);
+		BYTE read(WORD addr) const;
 		void write(WORD addr, BYTE value);
+		Gb_cartridge * cart() { return m_cart; };
+		void init(Gb_cartridge * cart);
 	private:
 		void write_wram_mirror(WORD addr, BYTE value);
 		void write_wram(WORD addr, BYTE value);
-		BYTE read_wram_mirror(WORD addr);
+		BYTE read_wram_mirror(WORD addr) const ;
 	private:
 		struct Gb_memory m_memory;
-		// memory banking controller
-		bool m_mbc1 = false; 
-		bool m_mbc2 = false;
+		Gb_cartridge * m_cart = nullptr;
 };
