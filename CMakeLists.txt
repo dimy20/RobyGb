@@ -10,7 +10,8 @@ add_subdirectory(tests)
 
 add_library(Gb_Emulator src/Gb_emulator.cpp
 						src/Memory.cpp
-						src/Gb_cartridge.cpp)
+						src/Gb_cartridge.cpp
+						src/Gb_core.cpp)
 target_include_directories(Gb_Emulator PUBLIC 
 						  ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
