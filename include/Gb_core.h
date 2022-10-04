@@ -23,6 +23,7 @@
  **/
 
 #define LD_8BIT_CYCLES 8
+
 struct Gb_register{
 	WORD pair; /* 16 bit paired register ex. HL*/
 	struct{
@@ -32,21 +33,24 @@ struct Gb_register{
 };
 
 class Gb_core{
-	enum class Is{
-		LD_8BIT_B = 0x6,
-		LD_8BIT_C = 0xe,
-		LD_8BIT_D = 0x16,
-		LD_8BIT_E = 0x1e,
-		LD_8BIT_H = 0x26,
-		LD_8BIT_L = 0x2e
+	enum reg_order{
+		REG_B, REG_C,
+		REG_D, REG_E,
+		REG_H, REG_L,
+		REG_HL, REG_A
 	};
 
+	enum class Is;
 	public:
 		Gb_core(Mem_mu * memory);
 		void emulate_cycles();
 	private:
 		void dispatch_next(); // disptach next instruction
-		int _8bit_load(BYTE& rg);
+		int _8bit_load(BYTE& rg, BYTE value);
+		int _8bit_ld_r1r2();
+		int ld_r_v(BYTE& r, BYTE v);
+		//Load absolute address addr with data from the 8-bit register r.
+		int ld_addr_r(WORD addr, BYTE r);
 	private:
 		Gb_register m_registerAF; 
 		Gb_register m_registerBC;
@@ -60,3 +64,79 @@ class Gb_core{
 
 		std::map<Is, void *> m_dispatch_table;
 };
+
+enum class Gb_core::Is{
+	// ld r,n
+	LD_8BIT_B = 0x6,
+	LD_8BIT_C = 0xe,
+	LD_8BIT_D = 0x16,
+	LD_8BIT_E = 0x1e,
+	LD_8BIT_H = 0x26,
+	LD_8BIT_L = 0x2e,
+	// ld r,r : r1 = r2
+	LD_8BIT_AA = 0x7f,
+	LD_8BIT_AB = 0X78,
+	LD_8BIT_AC = 0x79,
+	LD_8BIT_AD = 0x7a,
+	LD_8BIT_AE = 0x7b,
+	LD_8BIT_AH = 0x7c,
+	LD_8BIT_AL = 0x7d,
+	LD_8BIT_AHL = 0x7e,
+	// ld B, V
+	LD_8BIT_BB = 0x40,
+	LD_8BIT_BC = 0x41,
+	LD_8BIT_BD = 0x42,
+	LD_8BIT_BE = 0x43,
+	LD_8BIT_BH = 0x44,
+	LD_8BIT_BL = 0x45,
+	LD_8BIT_BHL = 0x46,
+	// LD C, V
+	LD_8BIT_CB = 0x48,
+	LD_8BIT_CC = 0x49,
+	LD_8BIT_CD = 0x4a,
+	LD_8BIT_CE = 0x4b,
+	LD_8BIT_CH = 0x4c,
+	LD_8BIT_CL = 0x4d,
+	LD_8BIT_CHL = 0x4e,
+	// LD D, V
+	LD_8BIT_DB = 0x50,
+	LD_8BIT_DC = 0x51,
+	LD_8BIT_DD = 0x52,
+	LD_8BIT_DE = 0x53,
+	LD_8BIT_DH = 0x54,
+	LD_8BIT_DL = 0x55,
+	LD_8BIT_DHL = 0x56,
+	// LD E, V
+	LD_8BIT_EB = 0x58,
+	LD_8BIT_EC = 0x59,
+	LD_8BIT_ED = 0x5a,
+	LD_8BIT_EE = 0x5b,
+	LD_8BIT_EH = 0x5c,
+	LD_8BIT_EL = 0x5d,
+	LD_8BIT_EHL = 0x5e,
+	// LD H, V
+	LD_8BIT_HB = 0x60,
+	LD_8BIT_HC = 0x61,
+	LD_8BIT_HD = 0x62,
+	LD_8BIT_HE = 0x63,
+	LD_8BIT_HH = 0x64,
+	LD_8BIT_HL = 0x65,
+	LD_8BIT_HHL = 0x66,
+	// LD H, V
+	LD_8BIT_LB = 0x68,
+	LD_8BIT_LC = 0x69,
+	LD_8BIT_LD = 0x6a,
+	LD_8BIT_LE = 0x6b,
+	LD_8BIT_LH = 0x6c,
+	LD_8BIT_LL = 0x6d,
+	LD_8BIT_LHL = 0x6e,
+	//
+	LD_8BIT_HLB = 0x70,
+	LD_8BIT_HLC = 0x71,
+	LD_8BIT_HLD = 0x72,
+	LD_8BIT_HLE = 0x73,
+	LD_8BIT_HLH = 0x74,
+	LD_8BIT_HLL = 0x75,
+	LD_8BIT_HLN = 0x36
+};
+
