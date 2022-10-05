@@ -54,6 +54,10 @@ class Gb_core{
 		void emulate_cycles(int n);
 		void init();
 
+		Gb_register r_AF() const { return m_registerAF; };
+		Gb_register r_BC() const { return m_registerBC; };
+		Gb_register r_DE() const { return m_registerDE; };
+		Gb_register r_HL() const { return m_registerHL; };
 	private:
 
 		int _8bit_load(BYTE& rg, BYTE value);

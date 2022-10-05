@@ -156,7 +156,7 @@ void Gb_core::_8bit_ldu8(){
 
 	std::cout << "Executing ld r, u8 instruction..." << std::endl;
 	if((opcode & 0x0f) == 0x6){
-		switch(opcode & 0xf0){
+		switch((opcode & 0xf0) >> 4){
 			case 0: _8bit_load(m_registerBC.hi, m_memory->read(m_pc + 1)); break;
 			case 1: _8bit_load(m_registerDE.hi, m_memory->read(m_pc + 1)); break;
 			case 2: _8bit_load(m_registerHL.hi, m_memory->read(m_pc + 1)); break;
@@ -165,7 +165,7 @@ void Gb_core::_8bit_ldu8(){
 				break;
 		}
 	}else if((opcode & 0x0f) == 0xe){
-		switch(opcode & 0xf0){
+		switch((opcode & 0xf0) >> 4){
 			case 0: _8bit_load(m_registerBC.lo, m_memory->read(m_pc + 1)); break;
 			case 1: _8bit_load(m_registerDE.lo, m_memory->read(m_pc + 1)); break;
 			case 2: _8bit_load(m_registerHL.lo, m_memory->read(m_pc + 1)); break;
