@@ -16,4 +16,8 @@ target_link_libraries(GTest::GTest INTERFACE gtest_main)
 add_executable(test_Memory test_Memory.cpp)
 target_link_libraries(test_Memory Gb_Emulator gtest_main)
 
+add_executable(test_core test_core.cpp)
+target_link_libraries(test_core Gb_Emulator gtest_main)
+
 add_test(Memory test_Memory)
+add_test(Gb_core test_core)
