@@ -49,6 +49,7 @@ class Gb_core{
 		enum class i_control;
 
 	public:
+		Gb_core() = default;
 		Gb_core(Mem_mu * memory);
 		void emulate_cycles(int n);
 		void init();

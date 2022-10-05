@@ -4,6 +4,6 @@
 int main(){
 	std::cout << "Gameboy Emulator!" << std::endl;
 	Gb_emulator gb;
-	gb.run("contra.gb");
+	gb.run("testgb.gb");
 	return 0;
 };
