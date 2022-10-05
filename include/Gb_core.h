@@ -26,9 +26,7 @@
 
 #define LD_8BIT_CYCLES 8
 
-typedef struct opcode_s opcode_t;
-
-
+struct Gb_instruction;
 struct Gb_register{
 	WORD pair; /* 16 bit paired register ex. HL*/
 	struct{
@@ -38,7 +36,7 @@ struct Gb_register{
 };
 
 class Gb_core{
-	friend opcode_t;
+	friend Gb_instruction;
 
 	public:
 		enum reg_order{
@@ -78,11 +76,11 @@ class Gb_core{
 		Mem_mu * m_memory;
 
 		// table for 8 bit load operations.
-		std::map<ld_8bit, std::shared_ptr<opcode_t>> m_8bit_load_table;
+		std::map<ld_8bit, std::shared_ptr<Gb_instruction>> m_8bit_load_table;
 		// table for jump calls
-		std::map<i_control, std::shared_ptr<opcode_t>> m_jmp_table;
+		std::map<i_control, std::shared_ptr<Gb_instruction>> m_jmp_table;
 		// table for 8-bit register loads of 8-bit inmediate data.
-		std::map<ld_8bit, std::shared_ptr<opcode_t>> m_8bit_ldu8_table;
+		std::map<ld_8bit, std::shared_ptr<Gb_instruction>> m_8bit_ldu8_table;
 
 };
 
@@ -110,11 +108,11 @@ enum class Gb_core::i_control{
 	JMP_NN = 0xc3
 };
 
-typedef struct opcode_s{
-	opcode_s(std::variant<Gb_core::ld_8bit, Gb_core::i_control> op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
+struct Gb_instruction{
+	Gb_instruction(std::variant<Gb_core::ld_8bit, Gb_core::i_control> op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
 	public:
 		std::variant<Gb_core::ld_8bit, Gb_core::i_control> opcode;
 		//Gb_core::Is opcode;
 		void (Gb_core::* fn)(void);
 		int cycles;
-}opcode_t;
+};

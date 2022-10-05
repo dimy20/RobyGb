@@ -12,7 +12,7 @@ void Gb_core::init(){
 		if((i >= 0x70 && i <= 0x77) || (i % 8 == 6)) cycles = 8;
 		
 		ld_8bit op = static_cast<ld_8bit>(i);
-		auto ptr = std::make_shared<opcode_t>(op, &Gb_core::_8bit_ld_r1r2, cycles);
+		auto ptr = std::make_shared<Gb_instruction>(op, &Gb_core::_8bit_ld_r1r2, cycles);
 		m_8bit_load_table[op] = ptr;
 	};
 
@@ -20,19 +20,19 @@ void Gb_core::init(){
 	for(int i = 0x06; i <= 0x36; i += 0x10){
 		int cycles = i != 0x036 ? 8 : 12;
 		ld_8bit op = static_cast<ld_8bit>(i);
-		auto ptr = std::make_shared<opcode_t>(op, &Gb_core::_8bit_ldu8, cycles);
+		auto ptr = std::make_shared<Gb_instruction>(op, &Gb_core::_8bit_ldu8, cycles);
 		m_8bit_ldu8_table[op] = ptr;
 	}
 
 	// instruction load inmediate u8 data for registers C, E, L, A
 	for(int i = 0x0e; i <= 0x3e; i += 0x10){
 		ld_8bit op = static_cast<ld_8bit>(i);
-		auto ptr = std::make_shared<opcode_t>(op, &Gb_core::_8bit_ldu8, 8);
+		auto ptr = std::make_shared<Gb_instruction>(op, &Gb_core::_8bit_ldu8, 8);
 		m_8bit_ldu8_table[op] = ptr;
 	}
 
 	// jmp calls
-	auto ptr = std::make_shared<opcode_t>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
+	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
 	m_jmp_table[i_control::JMP_NN] = ptr;
 
 };
