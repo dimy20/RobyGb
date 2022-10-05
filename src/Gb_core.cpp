@@ -105,3 +105,34 @@ int Gb_core::ld_addr_r(WORD addr, BYTE r){
 	};
 	return 8;
 };
+
+void Gb_core::jmp_nn(){
+	m_pc++;
+	WORD nn = (m_memory->read(m_pc + 1) << 8) | m_memory->read(m_pc);
+	m_pc = nn;
+	std::cout << "Jumping to  : " << nn << std::endl;
+};
+
+void Gb_core::_8bit_ldu8(){
+	auto opcode = m_memory->read(m_pc);
+
+	std::cout << "Executing ld r, u8 instruction..." << std::endl;
+	if((opcode & 0x0f) == 0x6){
+		switch(opcode & 0xf0){
+			case 0: _8bit_load(m_registerBC.hi, m_memory->read(m_pc + 1)); break;
+			case 1: _8bit_load(m_registerDE.hi, m_memory->read(m_pc + 1)); break;
+			case 2: _8bit_load(m_registerHL.hi, m_memory->read(m_pc + 1)); break;
+			case 3:
+				m_memory->write(m_registerHL.pair, m_memory->read(m_pc + 1));
+				break;
+		}
+	}else if((opcode & 0x0f) == 0xe){
+		switch(opcode & 0xf0){
+			case 0: _8bit_load(m_registerBC.lo, m_memory->read(m_pc + 1)); break;
+			case 1: _8bit_load(m_registerDE.lo, m_memory->read(m_pc + 1)); break;
+			case 2: _8bit_load(m_registerHL.lo, m_memory->read(m_pc + 1)); break;
+			case 3: _8bit_load(m_registerAF.hi, m_memory->read(m_pc + 1)); break;
+		}
+	}else std::cerr << "Uknown opcode : " << (int)opcode << std::endl;
+	m_pc += 2;
+};

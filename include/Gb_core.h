@@ -51,6 +51,10 @@ class Gb_core{
 		int ld_r_v(BYTE& r, BYTE v);
 		//Load absolute address addr with data from the 8-bit register r.
 		int ld_addr_r(WORD addr, BYTE r);
+		void jmp_nn();
+
+
+		void _8bit_ldu8();
 	private:
 		Gb_register m_registerAF; 
 		Gb_register m_registerBC;
@@ -137,6 +141,19 @@ enum class Gb_core::Is{
 	LD_8BIT_HLE = 0x73,
 	LD_8BIT_HLH = 0x74,
 	LD_8BIT_HLL = 0x75,
-	LD_8BIT_HLN = 0x36
+	LD_8BIT_HLA = 0x77,
+	// ld r, u8
+	LD_B_U8 = 0x06,
+	LD_D_U8 = 0x16,
+	LD_H_U8 = 0x26,
+	LD_HL_U8 = 0x36,
+	LD_C_U8 = 0x0e,
+	LD_E_U8 = 0x1e,
+	LD_L_U8 = 0x2e,
+	LD_A_U8 = 0x3e,
+		
+
+	// jpm calls
+	JMP_NN = 0xc3
 };
 
