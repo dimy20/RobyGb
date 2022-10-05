@@ -103,6 +103,7 @@ void Gb_core::_8bit_ld_r1r2(){
 			ld_addr_r(m_registerHL.pair, (BYTE)opcode % 8);
 			break;
 	}
+	m_pc++;
 };
 
 int Gb_core::_8bit_load(BYTE& rg, BYTE value){
@@ -173,4 +174,16 @@ void Gb_core::_8bit_ldu8(){
 		}
 	}else std::cerr << "Uknown opcode : " << (int)opcode << std::endl;
 	m_pc += 2;
+};
+
+BYTE Gb_core::r_X(reg_order r) const{
+	switch(r){
+		case Gb_core::reg_order::REG_B: return m_registerBC.hi;
+		case Gb_core::reg_order::REG_C: return m_registerBC.lo;
+		case Gb_core::reg_order::REG_D: return m_registerDE.hi;
+		case Gb_core::reg_order::REG_E: return m_registerDE.lo;
+		case Gb_core::reg_order::REG_H:	return m_registerHL.hi;
+		case Gb_core::reg_order::REG_L: return m_registerHL.lo;
+		case Gb_core::reg_order::REG_A: return m_registerAF.hi;
+	};
 };

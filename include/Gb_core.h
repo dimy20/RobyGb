@@ -58,6 +58,7 @@ class Gb_core{
 		Gb_register r_BC() const { return m_registerBC; };
 		Gb_register r_DE() const { return m_registerDE; };
 		Gb_register r_HL() const { return m_registerHL; };
+		BYTE r_X(reg_order r) const;
 	private:
 
 		int _8bit_load(BYTE& rg, BYTE value);
