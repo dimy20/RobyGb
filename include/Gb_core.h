@@ -1,5 +1,6 @@
 #pragma once
 #include <map>
+#include <memory>
 #include "Gb_types.h"
 #include "Memory.h"
 /* Screen */
@@ -47,7 +48,6 @@ class Gb_core{
 		};
 		enum class Is;
 
-	enum class Is;
 	public:
 		Gb_core(Mem_mu * memory);
 		void emulate_cycles(int n);
@@ -56,7 +56,7 @@ class Gb_core{
 	private:
 
 		int _8bit_load(BYTE& rg, BYTE value);
-		int _8bit_ld_r1r2();
+		void _8bit_ld_r1r2();
 		int ld_r_v(BYTE& r, BYTE v);
 		//Load absolute address addr with data from the 8-bit register r.
 		int ld_addr_r(WORD addr, BYTE r);
