@@ -50,9 +50,11 @@ class Gb_core{
 	enum class Is;
 	public:
 		Gb_core(Mem_mu * memory);
-		void emulate_cycles();
+		void emulate_cycles(int n);
+		void init();
+
 	private:
-		void dispatch_next(); // disptach next instruction
+
 		int _8bit_load(BYTE& rg, BYTE value);
 		int _8bit_ld_r1r2();
 		int ld_r_v(BYTE& r, BYTE v);
@@ -73,7 +75,13 @@ class Gb_core{
 		WORD m_pc = ENTRY_POINT;
 		Mem_mu * m_memory;
 
-		std::map<Is, void *> m_dispatch_table;
+		// table for 8 bit load operations.
+		std::map<Is, std::shared_ptr<opcode_t>> m_8bit_load_table;
+		// table for jump calls
+		std::map<Is, std::shared_ptr<opcode_t>> m_jmp_table;
+		// table for 8-bit register loads of 8-bit inmediate data.
+		std::map<Is, std::shared_ptr<opcode_t>> m_8bit_ldu8_table;
+
 };
 
 enum class Gb_core::Is{

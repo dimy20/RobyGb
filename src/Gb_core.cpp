@@ -3,10 +3,6 @@
 Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {
 }
 
-void Gb_core::dispatch_next(){
-	goto *m_dispatch_table[(Is)(m_pc++)]; //jmp
-};
-
 void Gb_core::emulate_cycles(){
 	m_dispatch_table[Is::LD_8BIT_B] = &&loadB;
 	m_dispatch_table[Is::LD_8BIT_C] = &&loadC;
@@ -23,10 +19,59 @@ void Gb_core::emulate_cycles(){
 		loadE: _8bit_load(m_registerDE.lo); dispatch_next();
 		loadH: _8bit_load(m_registerHL.hi); dispatch_next();
 		loadL: _8bit_load(m_registerHL.lo); dispatch_next();
+void Gb_core::init(){
+	// initialize all 8 bit load instructions in the range [0x40, 0x7f];
+	for(int i = 0x40; i <= 0x7f; i++){
+		if(i == 0x76) continue; // TODO: handle halt
+
+		int cycles = 4;
+		if((i >= 0x70 && i <= 0x77) || (i % 8 == 6)) cycles = 8;
+		
+		auto ptr = std::make_shared<opcode_t>((Is)i, &Gb_core::_8bit_ld_r1r2, cycles);
+		m_8bit_load_table[(Is)(i)] = ptr;
 	};
+
+	// instruction load inmediate u8 data for registers B, D, H, (HL)
+	for(int i = 0x06; i <= 0x36; i += 0x10){
+		int cycles = i != 0x036 ? 8 : 12;
+		auto ptr = std::make_shared<opcode_t>((Is)i, &Gb_core::_8bit_ldu8, cycles);
+		m_8bit_ldu8_table[static_cast<Is>(i)] = ptr;
+	}
+
+	// instruction load inmediate u8 data for registers C, E, L, A
+	for(int i = 0x0e; i <= 0x3e; i += 0x10){
+		auto ptr = std::make_shared<opcode_t>((Is)i, &Gb_core::_8bit_ldu8, 8);
+		m_8bit_ldu8_table[static_cast<Is>(i)] = ptr;
+	}
+
+	// jmp calls
+	auto ptr = std::make_shared<opcode_t>(Is::JMP_NN, &Gb_core::jmp_nn, 16);
+	m_jmp_table[Is::JMP_NN] = ptr;
+
 };
 
-int Gb_core::_8bit_ld_r1r2(){
+// real cycles not taken into account for now.
+void Gb_core::emulate_cycles(int n){
+	for(int i = 0; i < n; i++){
+		auto opcode = static_cast<Is>(m_memory->read(m_pc));
+		//auto opcode = m_memory->read(m_pc);
+		if(m_8bit_load_table.find(opcode) != m_8bit_load_table.end()){
+			auto op = m_8bit_load_table[opcode];
+			(this->*op->fn)(); // run instruction handler
+		}else if(m_jmp_table.find(opcode) != m_jmp_table.end()){
+			auto op = m_jmp_table[opcode];
+			(this->*op->fn)(); // run instruction handler
+		}else if(m_8bit_ldu8_table.find(opcode) != m_8bit_ldu8_table.end()){
+			auto op = m_8bit_ldu8_table[opcode];
+			(this->*op->fn)(); // run instruction handler
+		}else{
+			std::cerr << "Uknown opcode : " << (int)opcode << std::endl;
+		}
+	}
+};
+
+void Gb_core::_8bit_ld_r1r2(){
+	std::cout << "8-bit load instruction" << std::endl;
 	auto opcode = (Is)m_memory->read(m_pc);
 	switch(opcode){
 		case Is::LD_8BIT_AA: case Is::LD_8BIT_AB: case Is::LD_8BIT_AC:
