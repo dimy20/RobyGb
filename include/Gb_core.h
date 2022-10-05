@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <memory>
+#include <variant>
 #include "Gb_types.h"
 #include "Memory.h"
 /* Screen */
@@ -46,7 +47,8 @@ class Gb_core{
 			REG_H, REG_L,
 			REG_HL, REG_A
 		};
-		enum class Is;
+		enum class ld_8bit;
+		enum class i_control;
 
 	public:
 		Gb_core(Mem_mu * memory);
@@ -76,105 +78,43 @@ class Gb_core{
 		Mem_mu * m_memory;
 
 		// table for 8 bit load operations.
-		std::map<Is, std::shared_ptr<opcode_t>> m_8bit_load_table;
+		std::map<ld_8bit, std::shared_ptr<opcode_t>> m_8bit_load_table;
 		// table for jump calls
-		std::map<Is, std::shared_ptr<opcode_t>> m_jmp_table;
+		std::map<i_control, std::shared_ptr<opcode_t>> m_jmp_table;
 		// table for 8-bit register loads of 8-bit inmediate data.
-		std::map<Is, std::shared_ptr<opcode_t>> m_8bit_ldu8_table;
+		std::map<ld_8bit, std::shared_ptr<opcode_t>> m_8bit_ldu8_table;
 
 };
 
-enum class Gb_core::Is{
+enum class Gb_core::ld_8bit{
 	// ld r,r : r1 = r2
-	LD_8BIT_AA = 0x7f,
-	LD_8BIT_AB = 0X78,
-	LD_8BIT_AC = 0x79,
-	LD_8BIT_AD = 0x7a,
-	LD_8BIT_AE = 0x7b,
-	LD_8BIT_AH = 0x7c,
-	LD_8BIT_AL = 0x7d,
-	LD_8BIT_AHL = 0x7e,
-	// ld B, V
-	LD_8BIT_BB = 0x40,
-	LD_8BIT_BC = 0x41,
-	LD_8BIT_BD = 0x42,
-	LD_8BIT_BE = 0x43,
-	LD_8BIT_BH = 0x44,
-	LD_8BIT_BL = 0x45,
-	LD_8BIT_BHL = 0x46,
-	LD_8BIT_BA = 0x47,
-	// LD C, V
-	LD_8BIT_CB = 0x48,
-	LD_8BIT_CC = 0x49,
-	LD_8BIT_CD = 0x4a,
-	LD_8BIT_CE = 0x4b,
-	LD_8BIT_CH = 0x4c,
-	LD_8BIT_CL = 0x4d,
-	LD_8BIT_CHL = 0x4e,
-	LD_8BIT_CA = 0x4f,
-	// LD D, V
-	LD_8BIT_DB = 0x50,
-	LD_8BIT_DC = 0x51,
-	LD_8BIT_DD = 0x52,
-	LD_8BIT_DE = 0x53,
-	LD_8BIT_DH = 0x54,
-	LD_8BIT_DL = 0x55,
-	LD_8BIT_DHL = 0x56,
-	LD_8BIT_DA = 0x57,
-	// LD E, V
-	LD_8BIT_EB = 0x58,
-	LD_8BIT_EC = 0x59,
-	LD_8BIT_ED = 0x5a,
-	LD_8BIT_EE = 0x5b,
-	LD_8BIT_EH = 0x5c,
-	LD_8BIT_EL = 0x5d,
-	LD_8BIT_EHL = 0x5e,
-	LD_8BIT_EA = 0x5f,
-	// LD H, V
-	LD_8BIT_HB = 0x60,
-	LD_8BIT_HC = 0x61,
-	LD_8BIT_HD = 0x62,
-	LD_8BIT_HE = 0x63,
-	LD_8BIT_HH = 0x64,
-	LD_8BIT_HL = 0x65,
-	LD_8BIT_HHL = 0x66,
-	LD_8BIT_HA = 0x67,
-	// LD H, V
-	LD_8BIT_LB = 0x68,
-	LD_8BIT_LC = 0x69,
-	LD_8BIT_LD = 0x6a,
-	LD_8BIT_LE = 0x6b,
-	LD_8BIT_LH = 0x6c,
-	LD_8BIT_LL = 0x6d,
-	LD_8BIT_LHL = 0x6e,
-	LD_8BIT_LA = 0x6f,
-	//
-	LD_8BIT_HLB = 0x70,
-	LD_8BIT_HLC = 0x71,
-	LD_8BIT_HLD = 0x72,
-	LD_8BIT_HLE = 0x73,
-	LD_8BIT_HLH = 0x74,
-	LD_8BIT_HLL = 0x75,
-	LD_8BIT_HLA = 0x77,
-	// ld r, u8
-	LD_B_U8 = 0x06,
-	LD_D_U8 = 0x16,
-	LD_H_U8 = 0x26,
-	LD_HL_U8 = 0x36,
-	LD_C_U8 = 0x0e,
-	LD_E_U8 = 0x1e,
-	LD_L_U8 = 0x2e,
-	LD_A_U8 = 0x3e,
-		
+	A_A = 0x7f, B_B = 0x40, C_B = 0x48, D_B = 0x50, E_B = 0x58, H_B = 0x60, L_B = 0x68,
+	A_B = 0X78, B_C = 0x41, C_C = 0x49, D_C = 0x51, E_C = 0x59, H_C = 0x61, L_C = 0x69,
+	A_C = 0x79, B_D = 0x42, C_D = 0x4a, D_D = 0x52, E_D = 0x5a, H_D = 0x62, L_D = 0x6a,
+	A_D = 0x7a, B_E = 0x43, C_E = 0x4b, D_E = 0x53, E_E = 0x5b, H_E = 0x63, L_E = 0x6b,
+	A_E = 0x7b, B_H = 0x44, C_H = 0x4c, D_H = 0x54, E_H = 0x5c, H_H = 0x64, L_H = 0x6c,
+	A_H = 0x7c, B_L = 0x45, C_L = 0x4d, D_L = 0x55, E_L = 0x5d, H_L = 0x65, L_L = 0x6d,
+	A_L = 0x7d, B_HL = 0x46,C_HL = 0x4e,D_HL = 0x56,E_HL = 0x5e,H_HL = 0x66,L_HL = 0x6e,
+	A_HL = 0x7e,B_A = 0x47, C_A = 0x4f, D_A = 0x57, E_A = 0x5f, H_A = 0x67, L_A = 0x6f,
+				  // ld r, u8
+	HL_B = 0x70,  B_U8 = 0x06, A_U8 = 0x3e,
+	HL_C = 0x71,  D_U8 = 0x16,
+	HL_D = 0x72,  H_U8 = 0x26,
+	HL_E = 0x73,  HL_U8 = 0x36,
+	HL_H = 0x74,  C_U8 = 0x0e,
+	HL_L = 0x75,  E_U8 = 0x1e,
+	HL_A = 0x77,  L_U8 = 0x2e,
+};
 
-	// jpm calls
+enum class Gb_core::i_control{
 	JMP_NN = 0xc3
 };
 
 typedef struct opcode_s{
-	opcode_s(Gb_core::Is op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
+	opcode_s(std::variant<Gb_core::ld_8bit, Gb_core::i_control> op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
 	public:
-		Gb_core::Is opcode;
+		std::variant<Gb_core::ld_8bit, Gb_core::i_control> opcode;
+		//Gb_core::Is opcode;
 		void (Gb_core::* fn)(void);
 		int cycles;
 }opcode_t;
