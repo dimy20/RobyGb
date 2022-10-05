@@ -24,6 +24,9 @@
 
 #define LD_8BIT_CYCLES 8
 
+typedef struct opcode_s opcode_t;
+
+
 struct Gb_register{
 	WORD pair; /* 16 bit paired register ex. HL*/
 	struct{
@@ -33,12 +36,16 @@ struct Gb_register{
 };
 
 class Gb_core{
-	enum reg_order{
-		REG_B, REG_C,
-		REG_D, REG_E,
-		REG_H, REG_L,
-		REG_HL, REG_A
-	};
+	friend opcode_t;
+
+	public:
+		enum reg_order{
+			REG_B, REG_C,
+			REG_D, REG_E,
+			REG_H, REG_L,
+			REG_HL, REG_A
+		};
+		enum class Is;
 
 	enum class Is;
 	public:
@@ -70,13 +77,6 @@ class Gb_core{
 };
 
 enum class Gb_core::Is{
-	// ld r,n
-	LD_8BIT_B = 0x6,
-	LD_8BIT_C = 0xe,
-	LD_8BIT_D = 0x16,
-	LD_8BIT_E = 0x1e,
-	LD_8BIT_H = 0x26,
-	LD_8BIT_L = 0x2e,
 	// ld r,r : r1 = r2
 	LD_8BIT_AA = 0x7f,
 	LD_8BIT_AB = 0X78,
@@ -94,6 +94,7 @@ enum class Gb_core::Is{
 	LD_8BIT_BH = 0x44,
 	LD_8BIT_BL = 0x45,
 	LD_8BIT_BHL = 0x46,
+	LD_8BIT_BA = 0x47,
 	// LD C, V
 	LD_8BIT_CB = 0x48,
 	LD_8BIT_CC = 0x49,
@@ -102,6 +103,7 @@ enum class Gb_core::Is{
 	LD_8BIT_CH = 0x4c,
 	LD_8BIT_CL = 0x4d,
 	LD_8BIT_CHL = 0x4e,
+	LD_8BIT_CA = 0x4f,
 	// LD D, V
 	LD_8BIT_DB = 0x50,
 	LD_8BIT_DC = 0x51,
@@ -110,6 +112,7 @@ enum class Gb_core::Is{
 	LD_8BIT_DH = 0x54,
 	LD_8BIT_DL = 0x55,
 	LD_8BIT_DHL = 0x56,
+	LD_8BIT_DA = 0x57,
 	// LD E, V
 	LD_8BIT_EB = 0x58,
 	LD_8BIT_EC = 0x59,
@@ -118,6 +121,7 @@ enum class Gb_core::Is{
 	LD_8BIT_EH = 0x5c,
 	LD_8BIT_EL = 0x5d,
 	LD_8BIT_EHL = 0x5e,
+	LD_8BIT_EA = 0x5f,
 	// LD H, V
 	LD_8BIT_HB = 0x60,
 	LD_8BIT_HC = 0x61,
@@ -126,6 +130,7 @@ enum class Gb_core::Is{
 	LD_8BIT_HH = 0x64,
 	LD_8BIT_HL = 0x65,
 	LD_8BIT_HHL = 0x66,
+	LD_8BIT_HA = 0x67,
 	// LD H, V
 	LD_8BIT_LB = 0x68,
 	LD_8BIT_LC = 0x69,
@@ -134,6 +139,7 @@ enum class Gb_core::Is{
 	LD_8BIT_LH = 0x6c,
 	LD_8BIT_LL = 0x6d,
 	LD_8BIT_LHL = 0x6e,
+	LD_8BIT_LA = 0x6f,
 	//
 	LD_8BIT_HLB = 0x70,
 	LD_8BIT_HLC = 0x71,
@@ -157,3 +163,10 @@ enum class Gb_core::Is{
 	JMP_NN = 0xc3
 };
 
+typedef struct opcode_s{
+	opcode_s(Gb_core::Is op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
+	public:
+		Gb_core::Is opcode;
+		void (Gb_core::* fn)(void);
+		int cycles;
+}opcode_t;
