@@ -2,6 +2,7 @@
 #include <map>
 #include <memory>
 #include <variant>
+#include <vector>
 #include "Gb_types.h"
 #include "Memory.h"
 /* Screen */
@@ -70,6 +71,13 @@ class Gb_core{
 
 
 		void _8bit_ldu8();
+		void build_opcode_matrix();
+		// ld [R], u8
+		std::vector<ld_8bit> opcodes_8bitld_u8() const;
+		// ld [XX], R
+		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;
+		// ld XX, u16
+		std::vector<ld_16bit> opcodes_16bitld_u16() const;
 	private:
 		Gb_register m_registerAF; 
 		Gb_register m_registerBC;
@@ -81,13 +89,7 @@ class Gb_core{
 		WORD m_pc = ENTRY_POINT;
 		Mem_mu * m_memory;
 
-		// table for 8 bit load operations.
-		std::map<ld_8bit, std::shared_ptr<Gb_instruction>> m_8bit_load_table;
-		// table for jump calls
-		std::map<i_control, std::shared_ptr<Gb_instruction>> m_jmp_table;
-		// table for 8-bit register loads of 8-bit inmediate data.
-		std::map<ld_8bit, std::shared_ptr<Gb_instruction>> m_8bit_ldu8_table;
-
+		std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
 };
 
 enum class Gb_core::ld_8bit{

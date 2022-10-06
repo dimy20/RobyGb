@@ -1,58 +1,64 @@
 #include "Gb_core.h"
 #include <variant>
+
 Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {
 }
 
-void Gb_core::init(){
-	// initialize all 8 bit load instructions in the range [0x40, 0x7f];
-	for(int i = 0x40; i <= 0x7f; i++){
-		if(i == 0x76) continue; // TODO: handle halt
+void Gb_core::build_opcode_matrix(){
+	// sub grid : 0x40 - 0x7f
+	for(int row = 4; row <= 7; row++){
+		for(int col = 0; col < 16; col++){
+			BYTE opcode = (row << 4) | col;
+			auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
+														&Gb_core::_8bit_ld_r1r2, 8);
+			m_opcode_mat[row][col] = ptr;
+		}
+		std::cout << std::endl;
+	}
 
-		int cycles = 4;
-		if((i >= 0x70 && i <= 0x77) || (i % 8 == 6)) cycles = 8;
-		
-		ld_8bit op = static_cast<ld_8bit>(i);
-		auto ptr = std::make_shared<Gb_instruction>(op, &Gb_core::_8bit_ld_r1r2, cycles);
-		m_8bit_load_table[op] = ptr;
+	for(auto opcode : opcodes_8bitld_u8()){
+		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
+		int col = static_cast<BYTE>(opcode) & 0x0f;
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
+													&Gb_core::_8bit_ldu8, 8);
+		m_opcode_mat[row][col] = ptr;
 	};
 
-	// instruction load inmediate u8 data for registers B, D, H, (HL)
-	for(int i = 0x06; i <= 0x36; i += 0x10){
-		int cycles = i != 0x036 ? 8 : 12;
-		ld_8bit op = static_cast<ld_8bit>(i);
-		auto ptr = std::make_shared<Gb_instruction>(op, &Gb_core::_8bit_ldu8, cycles);
-		m_8bit_ldu8_table[op] = ptr;
-	}
+	for(auto opcode : opcodes_8bitld_XX_R()){
+		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
+		int col = static_cast<BYTE>(opcode) & 0x0f;
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
+													&Gb_core::_8bit_ldat_addr, 8);
+		m_opcode_mat[row][col] = ptr;
+	};
 
-	// instruction load inmediate u8 data for registers C, E, L, A
-	for(int i = 0x0e; i <= 0x3e; i += 0x10){
-		ld_8bit op = static_cast<ld_8bit>(i);
-		auto ptr = std::make_shared<Gb_instruction>(op, &Gb_core::_8bit_ldu8, 8);
-		m_8bit_ldu8_table[op] = ptr;
-	}
+	for(auto opcode : opcodes_16bitld_u16()){
+		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
+		int col = static_cast<BYTE>(opcode) & 0x0f;
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_16bit>(opcode),
+													&Gb_core::_16_bit_ld, 12);
+		m_opcode_mat[row][col] = ptr;
+	};
 
-	// jmp calls
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
-	m_jmp_table[i_control::JMP_NN] = ptr;
+	auto opcode = static_cast<BYTE>(i_control::JMP_NN);
+	m_opcode_mat[(opcode & 0xf0) >> 4][opcode & 0x0f] = ptr;
+};
 
+void Gb_core::init(){
+	build_opcode_matrix();
+	m_sp.pair = SP_INIT_ADDR;
 };
 
 // real cycles not taken into account for now.
 void Gb_core::emulate_cycles(int n){
 	for(int i = 0; i < n; i++){
 		auto opcode = m_memory->read(m_pc);
-		//auto opcode = m_memory->read(m_pc);
-		if(m_8bit_load_table.find(static_cast<ld_8bit>(opcode)) != m_8bit_load_table.end()){
-			auto op = m_8bit_load_table[static_cast<ld_8bit>(opcode)];
-			(this->*op->fn)(); // run instruction handler
-		}else if(m_jmp_table.find(static_cast<i_control>(opcode)) != m_jmp_table.end()){
-			auto op = m_jmp_table[static_cast<i_control>(opcode)];
-			(this->*op->fn)(); // run instruction handler
-		}else if(m_8bit_ldu8_table.find(static_cast<ld_8bit>(opcode)) != m_8bit_ldu8_table.end()){
-			auto op = m_8bit_ldu8_table[static_cast<ld_8bit>(opcode)];
-			(this->*op->fn)(); // run instruction handler
+		auto i_ptr = m_opcode_mat[(opcode & 0xf0) >> 4][opcode & 0x0f];
+		if(i_ptr.get() != nullptr){
+			(this->*i_ptr->fn)(); // run instruction handler
 		}else{
-			std::cerr << "Uknown opcode : " << (int)opcode << std::endl;
+			std::cerr << "Unknown opcode : " << std::hex << (int)opcode << std::endl;
 		}
 	}
 };
@@ -187,3 +193,16 @@ BYTE Gb_core::r_X(reg_order r) const{
 		case Gb_core::reg_order::REG_A: return m_registerAF.hi;
 	};
 };
+std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_u8() const{
+	return {ld_8bit::B_U8, ld_8bit::D_U8, ld_8bit::H_U8, ld_8bit::A_U8,
+			ld_8bit::HL_U8,ld_8bit::C_U8, ld_8bit::E_U8, ld_8bit::L_U8};
+}
+
+std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_XX_R() const{
+	return {ld_8bit::_BC_A, ld_8bit::_DE_A, ld_8bit::_HL_INC_A, ld_8bit::_HL_DEC_A};
+}
+
+
+std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_u16() const{
+	return {ld_16bit::BC_U16, ld_16bit::DE_U16, ld_16bit::HL_U16, ld_16bit::SP_U16};
+}
