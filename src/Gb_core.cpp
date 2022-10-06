@@ -208,6 +208,22 @@ BYTE Gb_core::r_X(reg_order r) const{
 		case Gb_core::reg_order::REG_A: return m_registerAF.hi;
 	};
 };
+
+void Gb_core::_16_bit_ld(){
+	auto opcode = m_memory->read(m_pc);
+	WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
+	switch(static_cast<ld_16bit>(opcode)){
+		case ld_16bit::BC_U16: m_registerBC.pair = value; break;
+		case ld_16bit::DE_U16: m_registerDE.pair = value; break;
+		case ld_16bit::HL_U16: m_registerHL.pair = value; break;
+		case ld_16bit::SP_U16: m_sp.pair = value; break;
+		default:
+			std::cerr << "Uknown opcode " << std::hex << (int)opcode << std::endl;
+			break;
+	};
+	m_pc += 3;
+};
+
 std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_u8() const{
 	return {ld_8bit::B_U8, ld_8bit::D_U8, ld_8bit::H_U8, ld_8bit::A_U8,
 			ld_8bit::HL_U8,ld_8bit::C_U8, ld_8bit::E_U8, ld_8bit::L_U8};

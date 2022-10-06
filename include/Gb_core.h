@@ -47,6 +47,7 @@ class Gb_core{
 			REG_HL, REG_A
 		};
 		enum class ld_8bit;
+		enum class ld_16bit;
 		enum class i_control;
 
 	public:
@@ -72,6 +73,9 @@ class Gb_core{
 
 		void _8bit_ldu8();
 		void _8bit_ld_xxr();
+		void _16_bit_ld();
+
+
 		void build_opcode_matrix();
 		// ld [R], u8
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
@@ -86,7 +90,9 @@ class Gb_core{
 		Gb_register m_registerHL;
 		// some instructions acess the low and high bytes of the stack pointer,
 		// so we'll represent it as a register.
-		WORD m_sp = SP_INIT_ADDR; // high ram
+		//WORD m_sp = SP_INIT_ADDR; // high ram
+		Gb_register m_sp;
+
 		WORD m_pc = ENTRY_POINT;
 		Mem_mu * m_memory;
 
@@ -111,6 +117,15 @@ enum class Gb_core::ld_8bit{
 	HL_H = 0x74,  C_U8 = 0x0e,
 	HL_L = 0x75,  E_U8 = 0x1e,
 	HL_A = 0x77,  L_U8 = 0x2e,
+				  A_U8 = 0x3e,
+};
+
+enum class Gb_core::ld_16bit{
+	// ld XX, u16
+	BC_U16 = 0x01,
+	DE_U16 = 0x11,
+	HL_U16 = 0X21,
+	SP_U16 = 0x31
 };
 
 enum class Gb_core::i_control{
