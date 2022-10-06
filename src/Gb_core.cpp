@@ -28,7 +28,7 @@ void Gb_core::build_opcode_matrix(){
 		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
 		int col = static_cast<BYTE>(opcode) & 0x0f;
 		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
-													&Gb_core::_8bit_ldat_addr, 8);
+													&Gb_core::_8bit_ld_xxr, 8);
 		m_opcode_mat[row][col] = ptr;
 	};
 
@@ -180,6 +180,21 @@ void Gb_core::_8bit_ldu8(){
 		}
 	}else std::cerr << "Uknown opcode : " << (int)opcode << std::endl;
 	m_pc += 2;
+};
+
+void Gb_core::_8bit_ld_xxr(){
+	auto opcode = m_memory->read(m_pc);
+	switch(static_cast<ld_8bit>(opcode)){
+		case ld_8bit::_BC_A: m_memory->write(m_registerBC.pair, m_registerAF.hi); break;
+		case ld_8bit::_DE_A: m_memory->write(m_registerDE.pair, m_registerAF.hi); break;
+		case ld_8bit::_HL_INC_A:
+			m_memory->write(m_registerHL.pair++, m_registerAF.hi);
+			break;
+		case ld_8bit::_HL_DEC_A:
+			m_memory->write(m_registerHL.pair--, m_registerAF.hi);
+			break;
+		default: std::cerr << "here Uknown opcode : " << (int)opcode << std::endl;
+	}
 };
 
 BYTE Gb_core::r_X(reg_order r) const{

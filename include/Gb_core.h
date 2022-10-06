@@ -71,6 +71,7 @@ class Gb_core{
 
 
 		void _8bit_ldu8();
+		void _8bit_ld_xxr();
 		void build_opcode_matrix();
 		// ld [R], u8
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
@@ -102,11 +103,11 @@ enum class Gb_core::ld_8bit{
 	A_H = 0x7c, B_L = 0x45, C_L = 0x4d, D_L = 0x55, E_L = 0x5d, H_L = 0x65, L_L = 0x6d,
 	A_L = 0x7d, B_HL = 0x46,C_HL = 0x4e,D_HL = 0x56,E_HL = 0x5e,H_HL = 0x66,L_HL = 0x6e,
 	A_HL = 0x7e,B_A = 0x47, C_A = 0x4f, D_A = 0x57, E_A = 0x5f, H_A = 0x67, L_A = 0x6f,
-				  // ld r, u8
-	HL_B = 0x70,  B_U8 = 0x06, A_U8 = 0x3e,
-	HL_C = 0x71,  D_U8 = 0x16,
-	HL_D = 0x72,  H_U8 = 0x26,
-	HL_E = 0x73,  HL_U8 = 0x36,
+				  // ld r, u8    ld [XX], r
+	HL_B = 0x70,  B_U8 = 0x06,  _BC_A = 0x02,
+	HL_C = 0x71,  D_U8 = 0x16,  _DE_A = 0x12,
+	HL_D = 0x72,  H_U8 = 0x26,  _HL_INC_A = 0x22,
+	HL_E = 0x73,  HL_U8 = 0x36, _HL_DEC_A = 0x32,
 	HL_H = 0x74,  C_U8 = 0x0e,
 	HL_L = 0x75,  E_U8 = 0x1e,
 	HL_A = 0x77,  L_U8 = 0x2e,
@@ -117,10 +118,13 @@ enum class Gb_core::i_control{
 };
 
 struct Gb_instruction{
-	Gb_instruction(std::variant<Gb_core::ld_8bit, Gb_core::i_control> op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
+	typedef std::variant<Gb_core::ld_8bit,
+						 Gb_core::i_control,
+						 Gb_core::ld_16bit> opcode_t;
+
+	Gb_instruction(opcode_t op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
 	public:
-		std::variant<Gb_core::ld_8bit, Gb_core::i_control> opcode;
-		//Gb_core::Is opcode;
+		opcode_t opcode;
 		void (Gb_core::* fn)(void);
 		int cycles;
 };
