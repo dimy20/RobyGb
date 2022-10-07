@@ -72,3 +72,12 @@ EntryPoint:
 	ld a, l
 	ld a, a
 
+	ld a, 1
+	ld bc, $c000
+	ld de, $c001
+	ld [bc], a
+	ld a, 255
+	ld [de], a
+	ld hl, $c002
+	ld [hl+], a
+	ld [hl-], a
