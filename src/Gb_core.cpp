@@ -1,5 +1,6 @@
 #include "Gb_core.h"
 #include <variant>
+#include <stdio.h>
 
 Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {
 }
@@ -28,7 +29,15 @@ void Gb_core::build_opcode_matrix(){
 		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
 		int col = static_cast<BYTE>(opcode) & 0x0f;
 		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
-													&Gb_core::_8bit_ld_xxr, 8);
+													&Gb_core::_8bit_ld_xxA, 8);
+		m_opcode_mat[row][col] = ptr;
+	};
+
+	for(auto opcode : opcodes_8bitld_Axx()){
+		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
+		int col = static_cast<BYTE>(opcode) & 0x0f;
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
+													&Gb_core::_8bit_ld_Axx, 8);
 		m_opcode_mat[row][col] = ptr;
 	};
 
@@ -56,6 +65,7 @@ void Gb_core::emulate_cycles(int n){
 		auto opcode = m_memory->read(m_pc);
 		auto i_ptr = m_opcode_mat[(opcode & 0xf0) >> 4][opcode & 0x0f];
 		if(i_ptr.get() != nullptr){
+			std::cout << std::hex << (int)opcode << std::endl;
 			(this->*i_ptr->fn)(); // run instruction handler
 		}else{
 			std::cerr << "Unknown opcode : " << std::hex << (int)opcode << std::endl;
@@ -168,6 +178,7 @@ void Gb_core::_8bit_ldu8(){
 			case 1: _8bit_load(m_registerDE.hi, m_memory->read(m_pc + 1)); break;
 			case 2: _8bit_load(m_registerHL.hi, m_memory->read(m_pc + 1)); break;
 			case 3:
+				std::cout << "Running that nasty one" << std::endl;
 				m_memory->write(m_registerHL.pair, m_memory->read(m_pc + 1));
 				break;
 		}
@@ -182,8 +193,9 @@ void Gb_core::_8bit_ldu8(){
 	m_pc += 2;
 };
 
-void Gb_core::_8bit_ld_xxr(){
+void Gb_core::_8bit_ld_xxA(){
 	auto opcode = m_memory->read(m_pc);
+	WORD value, addr;
 	switch(static_cast<ld_8bit>(opcode)){
 		case ld_8bit::_BC_A: m_memory->write(m_registerBC.pair, m_registerAF.hi); break;
 		case ld_8bit::_DE_A: m_memory->write(m_registerDE.pair, m_registerAF.hi); break;
@@ -193,8 +205,44 @@ void Gb_core::_8bit_ld_xxr(){
 		case ld_8bit::_HL_DEC_A:
 			m_memory->write(m_registerHL.pair--, m_registerAF.hi);
 			break;
+		case ld_8bit::_U16_A:
+			addr = (m_memory->read(m_pc + 2) << 8)  | m_memory->read(m_pc + 1);
+			m_memory->write(addr, m_registerAF.hi);
+			m_pc += 2;
+			break;
 		default: std::cerr << "here Uknown opcode : " << (int)opcode << std::endl;
 	}
+	m_pc++;
+};
+		
+void Gb_core::_8bit_ld_Axx(){
+	auto opcode = m_memory->read(m_pc);
+	WORD value, addr;
+	switch(static_cast<ld_8bit>(opcode)){
+		case ld_8bit::A_BC_:
+			value = m_memory->read(m_registerBC.pair);
+			_8bit_load(m_registerAF.hi, value);
+			break;
+		case ld_8bit::A_DE_:
+			value = m_memory->read(m_registerDE.pair);
+			_8bit_load(m_registerAF.hi, value);
+			break;
+		case ld_8bit::A_HL_INC:
+			value = m_memory->read(m_registerHL.pair++);
+			_8bit_load(m_registerAF.hi, value);
+			break;
+		case ld_8bit::A_HL_DEC:
+			value = m_memory->read(m_registerHL.pair--);
+			_8bit_load(m_registerAF.hi, value);
+			break;
+		case ld_8bit::A_U16_:
+			addr = (m_memory->read(m_pc + 2) << 8)  | m_memory->read(m_pc + 1);
+			_8bit_load(m_registerAF.hi, m_memory->read(addr));
+			m_pc += 2;
+			break;
+		default: std::cerr << "here Uknown opcode : " << (int)opcode << std::endl;
+	}
+	m_pc++;
 };
 
 BYTE Gb_core::r_X(reg_order r) const{
@@ -210,6 +258,7 @@ BYTE Gb_core::r_X(reg_order r) const{
 };
 
 void Gb_core::_16_bit_ld(){
+
 	auto opcode = m_memory->read(m_pc);
 	WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
 	switch(static_cast<ld_16bit>(opcode)){
@@ -230,9 +279,12 @@ std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_u8() const{
 }
 
 std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_XX_R() const{
-	return {ld_8bit::_BC_A, ld_8bit::_DE_A, ld_8bit::_HL_INC_A, ld_8bit::_HL_DEC_A};
-}
+	return {ld_8bit::_BC_A, ld_8bit::_DE_A, ld_8bit::_HL_INC_A, ld_8bit::_HL_DEC_A, ld_8bit::_U16_A};
+};
 
+std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_Axx() const{
+	return {ld_8bit::A_BC_, ld_8bit::A_DE_, ld_8bit::A_HL_INC, ld_8bit::A_HL_DEC, ld_8bit::A_U16_};
+}
 
 std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_u16() const{
 	return {ld_16bit::BC_U16, ld_16bit::DE_U16, ld_16bit::HL_U16, ld_16bit::SP_U16};
