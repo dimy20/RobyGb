@@ -81,3 +81,5 @@ EntryPoint:
 	ld hl, $c002
 	ld [hl+], a
 	ld [hl-], a
+	ld hl, $c005
+	ld [hl], 10

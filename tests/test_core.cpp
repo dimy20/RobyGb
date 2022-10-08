@@ -34,12 +34,35 @@ TEST(Core, ld_8bit_u8){
 	}
 
 	// test : ld[xx], a
-	core.emulate_cycles(9);
+	core.emulate_cycles(11);
 	ASSERT_EQ(memory.read(0xc000), 1);
 	ASSERT_EQ(memory.read(0xc001), 255);
 	ASSERT_EQ(memory.read(0xc002), 255);
 	ASSERT_EQ(memory.read(0xc003), 255);
+	ASSERT_EQ(memory.read(0xc005), 10);
 }
+
+TEST(Core, ld_8bit_01){
+	Gb_cartridge cart("../../tests/test_roms/8bit_ld/test_rom_01.gb");
+	Mem_mu memory;
+	memory.init(&cart);
+	Gb_core core(&memory);
+	core.init();
+	core.emulate_cycles(1);
+
+	core.emulate_cycles(5);
+	ASSERT_EQ(core.r_AF().hi, 10);
+	core.emulate_cycles(5);
+	ASSERT_EQ(core.r_AF().hi, 100);
+	core.emulate_cycles(3);
+	ASSERT_EQ(core.r_AF().hi, 128);
+	core.emulate_cycles(3);
+	ASSERT_EQ(core.r_AF().hi, 234);
+	core.emulate_cycles(2);
+	ASSERT_EQ(memory.read(0xc005), 255);
+	core.emulate_cycles(1);
+	ASSERT_EQ(core.r_AF().hi, 128);
+};
 
 TEST(Core, ld_16bit){
 	Gb_cartridge cart("../../tests/test_roms/16bit_ld/test_rom.gb");
