@@ -18,40 +18,32 @@ void Gb_core::build_opcode_matrix(){
 	}
 
 	for(auto opcode : opcodes_8bitld_u8()){
-		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
-		int col = static_cast<BYTE>(opcode) & 0x0f;
 		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
 													&Gb_core::_8bit_ldu8, 8);
-		m_opcode_mat[row][col] = ptr;
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	};
 
 	for(auto opcode : opcodes_8bitld_XX_R()){
-		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
-		int col = static_cast<BYTE>(opcode) & 0x0f;
 		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
 													&Gb_core::_8bit_ld_xxA, 8);
-		m_opcode_mat[row][col] = ptr;
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	};
 
 	for(auto opcode : opcodes_8bitld_Axx()){
-		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
-		int col = static_cast<BYTE>(opcode) & 0x0f;
 		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
 													&Gb_core::_8bit_ld_Axx, 8);
-		m_opcode_mat[row][col] = ptr;
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	};
 
 	for(auto opcode : opcodes_16bitld_u16()){
-		int row = (static_cast<BYTE>(opcode) & 0xf0) >> 4;
-		int col = static_cast<BYTE>(opcode) & 0x0f;
 		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_16bit>(opcode),
 													&Gb_core::_16_bit_ld, 12);
-		m_opcode_mat[row][col] = ptr;
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	};
 
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
 	auto opcode = static_cast<BYTE>(i_control::JMP_NN);
-	m_opcode_mat[(opcode & 0xf0) >> 4][opcode & 0x0f] = ptr;
+	m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 };
 
 void Gb_core::init(){
@@ -63,7 +55,7 @@ void Gb_core::init(){
 void Gb_core::emulate_cycles(int n){
 	for(int i = 0; i < n; i++){
 		auto opcode = m_memory->read(m_pc);
-		auto i_ptr = m_opcode_mat[(opcode & 0xf0) >> 4][opcode & 0x0f];
+		auto i_ptr = m_opcode_mat[ROW(opcode)][COL(opcode)];
 		if(i_ptr.get() != nullptr){
 			std::cout << std::hex << (int)opcode << std::endl;
 			(this->*i_ptr->fn)(); // run instruction handler

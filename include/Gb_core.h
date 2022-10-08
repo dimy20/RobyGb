@@ -21,6 +21,9 @@
 #define HALF_CARRY_FLAG 5
 #define CARRY_FLAG 4
 
+#define ROW(opcode) (static_cast<BYTE>(opcode) & 0xf0) >> 4
+#define COL(opcode) (static_cast<BYTE>(opcode) & 0x0f)
+
 /* BC -> ------- -------- 
  *	     low C    high B 
  **/
