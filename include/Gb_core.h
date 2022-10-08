@@ -78,6 +78,7 @@ class Gb_core{
 		void _8bit_ldu8();
 		void _8bit_ld_xxA();
 		void _8bit_ld_Axx();
+		void _8bit_ld_ff00();
 		void _16_bit_ld();
 
 
@@ -89,6 +90,7 @@ class Gb_core{
 		// ld XX, u16
 		std::vector<ld_16bit> opcodes_16bitld_u16() const;
 		std::vector<ld_8bit> opcodes_8bitld_Axx() const;
+		std::vector<ld_8bit> opcodes_ff00() const;
 	private:
 		Gb_register m_registerAF; 
 		Gb_register m_registerBC;
@@ -117,12 +119,12 @@ enum class Gb_core::ld_8bit{
 	A_HL = 0x7e,B_A = 0x47, C_A = 0x4f, D_A = 0x57, E_A = 0x5f, H_A = 0x67, L_A = 0x6f,
 				  // ld r, u8    ld [XX], r
 	HL_B = 0x70,  B_U8 = 0x06,  _BC_A = 0x02,	 _U16_A = 0xea,
-	HL_C = 0x71,  D_U8 = 0x16,  _DE_A = 0x12,	 A_U16_ = 0xfa,
-	HL_D = 0x72,  H_U8 = 0x26,  _HL_INC_A = 0x22,
-	HL_E = 0x73,  HL_U8 = 0x36, _HL_DEC_A = 0x32,
-	HL_H = 0x74,  C_U8 = 0x0e,  A_BC_ = 0xa,
-	HL_L = 0x75,  E_U8 = 0x1e,  A_DE_ = 0x1a,
-	HL_A = 0x77,  L_U8 = 0x2e,  A_HL_INC = 0x2a,
+	HL_C = 0x71,  D_U8 = 0x16,  _DE_A = 0x12,	  A_U16_ = 0xfa,
+	HL_D = 0x72,  H_U8 = 0x26,  _HL_INC_A = 0x22, /************/
+	HL_E = 0x73,  HL_U8 = 0x36, _HL_DEC_A = 0x32, _FF00_U8_A = 0xe0,
+	HL_H = 0x74,  C_U8 = 0x0e,  A_BC_ = 0xa,      A_FF00_U8_ = 0xf0,
+	HL_L = 0x75,  E_U8 = 0x1e,  A_DE_ = 0x1a,     _FF00_C_A = 0xe2,
+	HL_A = 0x77,  L_U8 = 0x2e,  A_HL_INC = 0x2a,  A_FF00_C_ = 0xf2,
 				  A_U8 = 0x3e,  A_HL_DEC = 0x3a,
 };
 

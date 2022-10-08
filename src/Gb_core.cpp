@@ -41,6 +41,12 @@ void Gb_core::build_opcode_matrix(){
 		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	};
 
+	for(auto opcode : opcodes_ff00()){
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
+													&Gb_core::_8bit_ld_ff00, 12);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	};
+
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
 	auto opcode = static_cast<BYTE>(i_control::JMP_NN);
 	m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
@@ -57,7 +63,6 @@ void Gb_core::emulate_cycles(int n){
 		auto opcode = m_memory->read(m_pc);
 		auto i_ptr = m_opcode_mat[ROW(opcode)][COL(opcode)];
 		if(i_ptr.get() != nullptr){
-			std::cout << std::hex << (int)opcode << std::endl;
 			(this->*i_ptr->fn)(); // run instruction handler
 		}else{
 			std::cerr << "Unknown opcode : " << std::hex << (int)opcode << std::endl;
@@ -66,8 +71,6 @@ void Gb_core::emulate_cycles(int n){
 };
 
 void Gb_core::_8bit_ld_r1r2(){
-	std::cout << "8-bit load instruction" << std::endl;
-	//auto opcode = (Is)m_memory->read(m_pc);
 	auto opcode = static_cast<ld_8bit>(m_memory->read(m_pc));
 	switch(opcode){
 		case ld_8bit::A_A: case ld_8bit::A_B: case ld_8bit::A_C:
@@ -157,20 +160,16 @@ void Gb_core::jmp_nn(){
 	m_pc++;
 	WORD nn = (m_memory->read(m_pc + 1) << 8) | m_memory->read(m_pc);
 	m_pc = nn;
-	std::cout << "Jumping to  : " << nn << std::endl;
 };
 
 void Gb_core::_8bit_ldu8(){
 	auto opcode = m_memory->read(m_pc);
-
-	std::cout << "Executing ld r, u8 instruction..." << std::endl;
 	if((opcode & 0x0f) == 0x6){
 		switch((opcode & 0xf0) >> 4){
 			case 0: _8bit_load(m_registerBC.hi, m_memory->read(m_pc + 1)); break;
 			case 1: _8bit_load(m_registerDE.hi, m_memory->read(m_pc + 1)); break;
 			case 2: _8bit_load(m_registerHL.hi, m_memory->read(m_pc + 1)); break;
 			case 3:
-				std::cout << "Running that nasty one" << std::endl;
 				m_memory->write(m_registerHL.pair, m_memory->read(m_pc + 1));
 				break;
 		}
@@ -281,3 +280,34 @@ std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_Axx() const{
 std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_u16() const{
 	return {ld_16bit::BC_U16, ld_16bit::DE_U16, ld_16bit::HL_U16, ld_16bit::SP_U16};
 }
+
+std::vector<Gb_core::ld_8bit> Gb_core::opcodes_ff00() const {
+	return {ld_8bit::_FF00_U8_A, ld_8bit::A_FF00_U8_, ld_8bit::_FF00_C_A,
+			ld_8bit::A_FF00_C_};
+}
+
+void Gb_core::_8bit_ld_ff00(){
+	auto opcode = m_memory->read(m_pc);
+	WORD offset;
+	switch(static_cast<ld_8bit>(opcode)){
+		case ld_8bit::_FF00_U8_A:
+			offset = m_memory->read(m_pc + 1);
+			m_memory->write(0xff00 + offset, m_registerAF.hi);
+			m_pc++;
+			break;
+		case ld_8bit::A_FF00_U8_:
+			offset = m_memory->read(m_pc + 1);
+			_8bit_load(m_registerAF.hi, m_memory->read(0xff00 + offset));
+			m_pc++;
+			break;
+		case ld_8bit::_FF00_C_A:
+			m_memory->write(0xff00 + m_registerBC.lo, m_registerAF.hi);
+			break;
+		case ld_8bit::A_FF00_C_:
+			_8bit_load(m_registerAF.hi, m_memory->read(0xff00 + m_registerBC.lo));
+			break;
+		default:
+			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
+	};
+	m_pc++;
+};
