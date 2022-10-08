@@ -62,6 +62,16 @@ TEST(Core, ld_8bit_01){
 	ASSERT_EQ(memory.read(0xc005), 255);
 	core.emulate_cycles(1);
 	ASSERT_EQ(core.r_AF().hi, 128);
+	core.emulate_cycles(3);
+	ASSERT_EQ(memory.read(0xff00), 10);
+	core.emulate_cycles(1);
+	ASSERT_EQ(memory.read(0xff00 + 10), 10);
+	core.emulate_cycles(2);
+	ASSERT_EQ(core.r_AF().hi, 10);
+	core.emulate_cycles(3);
+	ASSERT_EQ(memory.read(0xff00 + core.r_BC().lo), 1);
+	core.emulate_cycles(2);
+	ASSERT_EQ(core.r_AF().hi, 1);
 };
 
 TEST(Core, ld_16bit){
