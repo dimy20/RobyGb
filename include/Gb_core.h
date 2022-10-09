@@ -31,7 +31,7 @@
 #define LD_8BIT_CYCLES 8
 
 struct Gb_instruction;
-struct Gb_register{
+union Gb_register{
 	WORD pair; /* 16 bit paired register ex. HL*/
 	struct{
 		BYTE lo; // low byte ex. L
