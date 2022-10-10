@@ -59,40 +59,41 @@ class Gb_core{
 		void emulate_cycles(int n);
 		void init();
 
-		Gb_register r_AF() const { return m_registerAF; };
-		Gb_register r_BC() const { return m_registerBC; };
-		Gb_register r_DE() const { return m_registerDE; };
-		Gb_register r_HL() const { return m_registerHL; };
+		constexpr Gb_register r_AF() const { return m_registerAF; };
+		constexpr Gb_register r_BC() const { return m_registerBC; };
+		constexpr Gb_register r_DE() const { return m_registerDE; };
+		constexpr Gb_register r_HL() const { return m_registerHL; };
+		constexpr Gb_register sp() const {return m_sp; };
 		BYTE r_X(reg_order r) const;
-		Gb_register sp() const {return m_sp; };
+
 	private:
+		void build_opcode_matrix();
 
 		int _8bit_load(BYTE& rg, BYTE value);
 		void _8bit_ld_r1r2();
 		int ld_r_v(BYTE& r, BYTE v);
 		//Load absolute address addr with data from the 8-bit register r.
 		int ld_addr_r(WORD addr, BYTE r);
-		void jmp_nn();
-
-
 		void _8bit_ldu8();
 		void _8bit_ld_xxA();
 		void _8bit_ld_Axx();
 		void _8bit_ld_ff00();
+
+
 		void _16_bit_ld();
+		void _16bit_ldsp();
 
+		void jmp_nn();
 
-		void build_opcode_matrix();
-		// ld [R], u8
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
-		// ld [XX], R
 		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;
-		// ld XX, u16
-		std::vector<ld_16bit> opcodes_16bitld_u16() const;
 		std::vector<ld_8bit> opcodes_8bitld_Axx() const;
 		std::vector<ld_8bit> opcodes_ff00() const;
+
+		std::vector<ld_16bit> opcodes_16bitld_u16() const;
+		std::vector<ld_16bit> opcodes_16bitld_stack() const;
 	private:
-		Gb_register m_registerAF; 
+		Gb_register m_registerAF;
 		Gb_register m_registerBC;
 		Gb_register m_registerDE;
 		Gb_register m_registerHL;
@@ -130,10 +131,10 @@ enum class Gb_core::ld_8bit{
 
 enum class Gb_core::ld_16bit{
 	// ld XX, u16
-	BC_U16 = 0x01,
-	DE_U16 = 0x11,
-	HL_U16 = 0X21,
-	SP_U16 = 0x31
+	BC_U16 = 0x01, POP_BC = 0xc1, PUSH_BC = 0xc5,
+	DE_U16 = 0x11, POP_DE = 0xd1, PUSH_DE = 0xd5,
+	HL_U16 = 0X21, POP_HL = 0xe1, PUSH_HL = 0xe5,
+	SP_U16 = 0x31, POP_AF = 0xf1, PUSH_AF = 0xf5,
 };
 
 enum class Gb_core::i_control{

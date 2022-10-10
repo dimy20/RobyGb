@@ -47,6 +47,13 @@ void Gb_core::build_opcode_matrix(){
 		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	};
 
+	for(auto opcode : opcodes_16bitld_stack()){
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_16bit>(opcode),
+													&Gb_core::_16bit_ldsp, 12);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+
+	}
+
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
 	auto opcode = static_cast<BYTE>(i_control::JMP_NN);
 	m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
@@ -55,6 +62,8 @@ void Gb_core::build_opcode_matrix(){
 void Gb_core::init(){
 	build_opcode_matrix();
 	m_sp.pair = SP_INIT_ADDR;
+	m_registerBC.pair = 0;
+	m_registerAF.pair = 0;
 };
 
 // real cycles not taken into account for now.
@@ -249,7 +258,6 @@ BYTE Gb_core::r_X(reg_order r) const{
 };
 
 void Gb_core::_16_bit_ld(){
-
 	auto opcode = m_memory->read(m_pc);
 	WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
 	switch(static_cast<ld_16bit>(opcode)){
@@ -286,6 +294,11 @@ std::vector<Gb_core::ld_8bit> Gb_core::opcodes_ff00() const {
 			ld_8bit::A_FF00_C_};
 }
 
+std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_stack() const{
+	return {ld_16bit::POP_BC, ld_16bit::PUSH_BC, ld_16bit::PUSH_DE, ld_16bit::POP_DE,
+			ld_16bit::POP_HL, ld_16bit::PUSH_HL, ld_16bit::POP_AF, ld_16bit::PUSH_AF};
+};
+
 void Gb_core::_8bit_ld_ff00(){
 	auto opcode = m_memory->read(m_pc);
 	WORD offset;
@@ -305,6 +318,51 @@ void Gb_core::_8bit_ld_ff00(){
 			break;
 		case ld_8bit::A_FF00_C_:
 			_8bit_load(m_registerAF.hi, m_memory->read(0xff00 + m_registerBC.lo));
+			break;
+		default:
+			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
+	};
+	m_pc++;
+};
+
+void Gb_core::_16bit_ldsp(){
+	auto opcode = m_memory->read(m_pc);
+	switch(static_cast<ld_16bit>(opcode)){
+		case ld_16bit::POP_BC:
+			if(m_sp.pair == SP_INIT_ADDR) return;
+			m_registerBC.lo = m_memory->read(++m_sp.pair);
+			m_registerBC.hi = m_memory->read(++m_sp.pair);
+			break;
+		case ld_16bit::POP_DE:
+			if(m_sp.pair == SP_INIT_ADDR) return;
+			m_registerDE.lo = m_memory->read(++m_sp.pair);
+			m_registerDE.hi = m_memory->read(++m_sp.pair);
+			break;
+		case ld_16bit::POP_HL:
+			if(m_sp.pair == SP_INIT_ADDR) return;
+			m_registerHL.lo = m_memory->read(++m_sp.pair);
+			m_registerHL.hi = m_memory->read(++m_sp.pair);
+			break;
+		case ld_16bit::POP_AF:
+			if(m_sp.pair == SP_INIT_ADDR) return;
+			m_registerAF.lo |= m_memory->read(++m_sp.pair) & 0xf0;
+			m_registerAF.hi |= m_memory->read(++m_sp.pair);
+			break;
+		case ld_16bit::PUSH_BC:
+			m_memory->write(m_sp.pair--, m_registerBC.hi);
+			m_memory->write(m_sp.pair--, m_registerBC.lo);
+			break;
+		case ld_16bit::PUSH_DE:
+			m_memory->write(m_sp.pair--, m_registerDE.hi);
+			m_memory->write(m_sp.pair--, m_registerDE.lo);
+			break;
+		case ld_16bit::PUSH_HL:
+			m_memory->write(m_sp.pair--, m_registerHL.hi);
+			m_memory->write(m_sp.pair--, m_registerHL.lo);
+			break;
+		case ld_16bit::PUSH_AF:
+			m_memory->write(m_sp.pair--, m_registerAF.hi);
+			m_memory->write(m_sp.pair--, m_registerAF.lo);
 			break;
 		default:
 			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
