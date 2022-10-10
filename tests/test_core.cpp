@@ -122,7 +122,8 @@ TEST(Core, ld_16bit_sp){
 	ASSERT_EQ(core.r_AF().hi, 20);
 }
 
-TEST(Core, alu){
+TEST(Core, alu_add){
+	// test opcodes [0x80 - 0x87]
 	Gb_cartridge cart("../../tests/test_roms/alu/alu1.gb");
 	Mem_mu memory;
 	memory.init(&cart);
@@ -142,6 +143,40 @@ TEST(Core, alu){
 	ASSERT_EQ(core.r_AF().hi, 28);
 	core.emulate_cycles(1);
 	ASSERT_EQ(core.r_AF().hi, 28 * 2);
+};
+
+TEST(Core, alu_adc){
+	Gb_cartridge cart("../../tests/test_roms/alu/alu1.gb");
+	Mem_mu memory;
+	memory.init(&cart);
+	Gb_core core(&memory);
+	core.init();
+
+	core.emulate_cycles(20);
+
+	core.emulate_cycles(3);
+	ASSERT_EQ(core.r_AF().hi, 255);
+	core.emulate_cycles(3);
+	ASSERT_EQ(core.r_AF().hi, 2);
+
+	core.emulate_cycles(4);
+	ASSERT_EQ(core.r_AF().hi, 255);
+	core.emulate_cycles(3);
+	ASSERT_EQ(core.r_AF().hi, 2);
+};
+
+TEST(Core, alu_sub){
+	Gb_cartridge cart("../../tests/test_roms/alu/alu1.gb");
+	Mem_mu memory;
+	memory.init(&cart);
+	Gb_core core(&memory);
+	core.init();
+
+	core.emulate_cycles(20 + 14);
+	core.emulate_cycles(3);
+	ASSERT_EQ(core.r_AF().hi, 10);
+	core.emulate_cycles(2);
+	ASSERT_EQ(core.r_AF().hi, 0);
 };
 
 int main(int argc, char ** argv){

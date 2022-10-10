@@ -26,3 +26,30 @@ TEST:
 	ld [hl], 7
 	add a, [hl]
 	add a, a
+	ld a, 0
+	jp TEST2
+
+TEST2:
+	ld b, 255
+	adc a, b
+	ld b, 1
+	adc a, b
+	ld b, 1
+	adc a, b
+
+	ld a, 0
+	ld c, 255
+	adc a, c
+	ld c, 1
+	adc a, c
+	ld c, 1
+	adc a, c
+	jp TEST3
+
+TEST3:
+	ld b, 10
+	ld a, 20
+	sub a, b
+
+	ld c, 10
+	sub a, c
