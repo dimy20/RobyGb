@@ -49,9 +49,16 @@ class Gb_core{
 			REG_H, REG_L,
 			REG_HL, REG_A
 		};
+		enum flag{
+			ZERO = 7,
+			SUBS = 6,
+			HALF_CARRY = 5,
+			CARRY = 4
+		};
 		enum class ld_8bit;
 		enum class ld_16bit;
 		enum class i_control;
+		enum class alu;
 
 	public:
 		Gb_core() = default;
@@ -85,6 +92,11 @@ class Gb_core{
 
 		void jmp_nn();
 
+		void alu_add();
+		void x8_alu_add(BYTE& r1, BYTE r2);
+		void set_flag(flag f);
+		void unset_flag(flag f);
+
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
 		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;
 		std::vector<ld_8bit> opcodes_8bitld_Axx() const;
@@ -92,6 +104,7 @@ class Gb_core{
 
 		std::vector<ld_16bit> opcodes_16bitld_u16() const;
 		std::vector<ld_16bit> opcodes_16bitld_stack() const;
+		std::vector<alu> opcodes_alu() const;
 	private:
 		Gb_register m_registerAF;
 		Gb_register m_registerBC;
@@ -137,6 +150,17 @@ enum class Gb_core::ld_16bit{
 	SP_U16 = 0x31, POP_AF = 0xf1, PUSH_AF = 0xf5,
 };
 
+enum class Gb_core::alu{
+	ADD_A_B = 0x80,
+	ADD_A_C = 0x81,
+	ADD_A_D = 0x82,
+	ADD_A_E = 0x83,
+	ADD_A_H = 0x84,
+	ADD_A_L = 0x85,
+	ADD_A_HL_ = 0x86,
+	ADD_A_A = 0x87,
+};
+
 enum class Gb_core::i_control{
 	JMP_NN = 0xc3
 };
@@ -144,7 +168,8 @@ enum class Gb_core::i_control{
 struct Gb_instruction{
 	typedef std::variant<Gb_core::ld_8bit,
 						 Gb_core::i_control,
-						 Gb_core::ld_16bit> opcode_t;
+						 Gb_core::ld_16bit,
+						 Gb_core::alu> opcode_t;
 
 	Gb_instruction(opcode_t op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
 	public:

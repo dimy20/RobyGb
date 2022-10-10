@@ -51,7 +51,12 @@ void Gb_core::build_opcode_matrix(){
 		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_16bit>(opcode),
 													&Gb_core::_16bit_ldsp, 12);
 		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	}
 
+	for(auto opcode : opcodes_alu()){
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),
+													&Gb_core::alu_add, 12);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	}
 
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
@@ -299,6 +304,11 @@ std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_stack() const{
 			ld_16bit::POP_HL, ld_16bit::PUSH_HL, ld_16bit::POP_AF, ld_16bit::PUSH_AF};
 };
 
+std::vector<Gb_core::alu> Gb_core::opcodes_alu() const{
+	return {alu::ADD_A_B, alu::ADD_A_C, alu::ADD_A_D, alu::ADD_A_E, alu::ADD_A_H,
+			alu::ADD_A_L, alu::ADD_A_HL_, alu::ADD_A_A};
+};
+
 void Gb_core::_8bit_ld_ff00(){
 	auto opcode = m_memory->read(m_pc);
 	WORD offset;
@@ -363,6 +373,38 @@ void Gb_core::_16bit_ldsp(){
 		case ld_16bit::PUSH_AF:
 			m_memory->write(m_sp.pair--, m_registerAF.hi);
 			m_memory->write(m_sp.pair--, m_registerAF.lo);
+			break;
+		default:
+			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
+	};
+	m_pc++;
+};
+
+
+void Gb_core::set_flag(Gb_core::flag f){ m_registerAF.lo |= (0x1 << (7 - f)); };
+void Gb_core::unset_flag(Gb_core::flag f){ m_registerAF.lo &= ~(0x1 << (7 - f)); };
+	
+// ---- ----
+void Gb_core::x8_alu_add(BYTE& r1, BYTE r2){
+	for(int i = 4; i <= 7; i++) unset_flag(static_cast<flag>(i));
+	if((r1 & 0x0f) + (r2 + 0x0f) > 0x0f) set_flag(flag::HALF_CARRY);
+	if(static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff) set_flag(flag::CARRY);
+	if(r1 + r2 == 0) set_flag(flag::ZERO);
+	r1 += r2;
+};
+
+void Gb_core::alu_add(){
+	auto opcode = m_memory->read(m_pc);
+	switch(static_cast<alu>(opcode)){
+		case alu::ADD_A_B: x8_alu_add(m_registerAF.hi, m_registerBC.hi); break;
+		case alu::ADD_A_C: x8_alu_add(m_registerAF.hi, m_registerBC.lo); break;
+		case alu::ADD_A_D: x8_alu_add(m_registerAF.hi, m_registerDE.hi); break;
+		case alu::ADD_A_E: x8_alu_add(m_registerAF.hi, m_registerDE.lo); break;
+		case alu::ADD_A_H: x8_alu_add(m_registerAF.hi, m_registerHL.hi); break;
+		case alu::ADD_A_L: x8_alu_add(m_registerAF.hi, m_registerHL.lo); break;
+		case alu::ADD_A_A: x8_alu_add(m_registerAF.hi, m_registerAF.hi); break;
+		case alu::ADD_A_HL_:
+			x8_alu_add(m_registerAF.hi, m_memory->read(m_registerHL.pair));
 			break;
 		default:
 			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
