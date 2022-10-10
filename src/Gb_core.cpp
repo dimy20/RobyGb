@@ -54,9 +54,15 @@ void Gb_core::build_opcode_matrix(){
 	}
 
 	for(auto opcode : opcodes_alu()){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),
-													&Gb_core::alu_add, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+		std::shared_ptr<Gb_instruction> ptr;
+		if(opcode >= alu::ADD_A_B && opcode <= alu::ADC_A_A){
+			ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),
+														&Gb_core::alu_add, 12);
+			m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+		}else if(opcode >= alu::SUB_A_B && opcode <= alu::SBC_A_A){
+			ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::alu_sub, 12);
+			m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+		};
 	}
 
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
@@ -308,7 +314,10 @@ std::vector<Gb_core::alu> Gb_core::opcodes_alu() const{
 	return {alu::ADD_A_B, alu::ADD_A_C, alu::ADD_A_D, alu::ADD_A_E, alu::ADD_A_H,
 			alu::ADD_A_L, alu::ADD_A_HL_, alu::ADD_A_A, alu::ADC_A_B, alu::ADC_A_C,
 			alu::ADC_A_D, alu::ADC_A_E, alu::ADC_A_H, alu::ADC_A_L, alu::ADC_A_HL_,
-			alu::ADC_A_A};
+			alu::ADC_A_A, alu::SUB_A_B, alu::SUB_A_C, alu::SUB_A_D, alu::SUB_A_E,
+			alu::SUB_A_H, alu::SUB_A_L, alu::SUB_A_HL_, alu::SUB_A_A, alu::SBC_A_B,
+			alu::SBC_A_C, alu::SBC_A_D, alu::SBC_A_E, alu::SBC_A_H, alu::SBC_A_L,
+			alu::SBC_A_HL_, alu::SBC_A_A};
 };
 
 void Gb_core::_8bit_ld_ff00(){
@@ -391,7 +400,7 @@ void Gb_core::x8_alu_add(BYTE& r1, BYTE r2, bool add_carry){
 		BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
 		// overflow?
 		unset_flag(HALF_CARRY);
-		if((r1 & 0x0f) + (r2 + 0x0f) + c_flag > 0x0f) set_flag(flag::HALF_CARRY);
+		if(((r1 & 0x0f) + (r2 + 0x0f) + c_flag) & 0x10) set_flag(flag::HALF_CARRY);
 			
 		unset_flag(flag::CARRY);
 		if(static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff)
@@ -403,7 +412,7 @@ void Gb_core::x8_alu_add(BYTE& r1, BYTE r2, bool add_carry){
 
 	}else{
 		unset_flag(flag::HALF_CARRY);
-		if((r1 & 0x0f) + (r2 + 0x0f) > 0x0f) set_flag(flag::HALF_CARRY);
+		if(((r1 & 0x0f) + (r2 + 0x0f)) & 0x10) set_flag(flag::HALF_CARRY);
 
 		unset_flag(flag::CARRY);
 		if(static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff) set_flag(flag::CARRY);
@@ -440,5 +449,64 @@ void Gb_core::alu_add(){
 		default:
 			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
 	};
+	m_pc++;
+};
+
+void Gb_core::x8_alu_sub(BYTE& r1, BYTE r2, bool sub_carry){
+	set_flag(flag::SUBS);
+
+	if(sub_carry){
+		BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
+		unset_flag(flag::HALF_CARRY);
+		if(static_cast<int>(r1 & 0x0f) - static_cast<int>(r2 & 0x0f) + c_flag > 0)
+			set_flag(flag::HALF_CARRY);
+
+		if((r2 + c_flag) <= r1)
+			set_flag(flag::CARRY);
+
+		unset_flag(flag::ZERO);
+		if(r1 - (r2 + c_flag) == 0) set_flag(flag::ZERO);
+		// implement
+	}else{
+		unset_flag(flag::ZERO);
+		if(r1 - r2 == 0) set_flag(flag::ZERO);
+
+		unset_flag(flag::HALF_CARRY);
+		if(static_cast<int>(r1 & 0x0f) - static_cast<int>(r2 & 0x0f) > 0)
+			set_flag(flag::HALF_CARRY);
+		// no borrow
+
+		if(r2 <= r1)
+			set_flag(flag::CARRY);
+		r1 -= r2;
+	}
+};
+
+void Gb_core::alu_sub(){
+	auto opcode = m_memory->read(m_pc);
+	switch(static_cast<alu>(opcode)){
+		case alu::SUB_A_B: x8_alu_sub(m_registerAF.hi, m_registerBC.hi, false); break;
+		case alu::SUB_A_C: x8_alu_sub(m_registerAF.hi, m_registerBC.lo, false); break;
+		case alu::SUB_A_D: x8_alu_sub(m_registerAF.hi, m_registerDE.hi, false); break;
+		case alu::SUB_A_E: x8_alu_sub(m_registerAF.hi, m_registerDE.lo, false); break;
+		case alu::SUB_A_H: x8_alu_sub(m_registerAF.hi, m_registerHL.hi, false); break;
+		case alu::SUB_A_L: x8_alu_sub(m_registerAF.hi, m_registerHL.lo, false); break;
+		case alu::SUB_A_A: x8_alu_sub(m_registerAF.hi, m_registerAF.hi, false); break;
+		case alu::SUB_A_HL_:
+			x8_alu_sub(m_registerAF.hi, m_memory->read(m_registerHL.pair), false);
+			break;
+		case alu::SBC_A_B: x8_alu_sub(m_registerAF.hi, m_registerBC.hi, true); break;
+		case alu::SBC_A_C: x8_alu_sub(m_registerAF.hi, m_registerBC.lo, true); break;
+		case alu::SBC_A_D: x8_alu_sub(m_registerAF.hi, m_registerDE.hi, true); break;
+		case alu::SBC_A_E: x8_alu_sub(m_registerAF.hi, m_registerDE.lo, true); break;
+		case alu::SBC_A_H: x8_alu_sub(m_registerAF.hi, m_registerHL.hi, true); break;
+		case alu::SBC_A_L: x8_alu_sub(m_registerAF.hi, m_registerHL.lo, true); break;
+		case alu::SBC_A_HL_:
+		    x8_alu_sub(m_registerAF.hi, m_memory->read(m_registerHL.pair), true);
+		    break;
+		case alu::SBC_A_A: x8_alu_sub(m_registerAF.hi, m_registerAF.hi, true); break;
+		default:
+			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
+	}
 	m_pc++;
 };
