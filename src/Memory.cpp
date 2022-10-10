@@ -17,6 +17,8 @@ BYTE Mem_mu::read(WORD addr) const {
 	if(addr >= 0xd000 && addr <= 0xdfff) return m_memory.wram_bank1n[addr - 0xd000];
 	if(addr >= 0xe000 && addr <= 0xfdff) return read_wram_mirror(addr);
 	if(addr >= 0xfea0 && addr <= 0xfeff) return 0x00;
+	if(addr >= 0xff00 && addr <= 0xff7f) return m_memory.io_registers[addr - 0xff00];
+	if(addr >= 0xff80 && addr <= 0xfffe) return m_memory.hram[addr - 0xff80];
 };
 
 BYTE Mem_mu::read_wram_mirror(WORD addr) const {
@@ -60,6 +62,11 @@ void Mem_mu::write(WORD addr, BYTE value){
 	else if(addr >= 0xfea0 && addr <= 0xfeff) return; //prohibited
 	else if(addr >= 0xe000 && addr <= 0xfdff) write_wram_mirror(addr, value);
 	else if(addr >= 0xc000 && addr <= 0xdfff) write_wram(addr, value);
+	else if(addr >= 0xff00 && addr <= 0xff7f){ // io registers
+		m_memory.io_registers[addr - 0xff00] = value;
+	}else if(addr >= 0xff80 && addr <= 0xfffe){ // high ram
+		m_memory.hram[addr - 0xff80] = value;
+	}
 	else{
 		std::cout << "Unimplemented yet" << std::endl;
 	}
