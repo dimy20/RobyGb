@@ -122,6 +122,28 @@ TEST(Core, ld_16bit_sp){
 	ASSERT_EQ(core.r_AF().hi, 20);
 }
 
+TEST(Core, alu){
+	Gb_cartridge cart("../../tests/test_roms/alu/alu1.gb");
+	Mem_mu memory;
+	memory.init(&cart);
+	Gb_core core(&memory);
+	core.init();
+
+	core.emulate_cycles(1);
+	core.emulate_cycles(7);
+
+	int sum = 0;
+	for(int i = 1; i <= 6; i++){
+		sum += i;
+		core.emulate_cycles(1);
+		ASSERT_EQ(core.r_AF().hi, sum);
+	}
+	core.emulate_cycles(3);
+	ASSERT_EQ(core.r_AF().hi, 28);
+	core.emulate_cycles(1);
+	ASSERT_EQ(core.r_AF().hi, 28 * 2);
+};
+
 int main(int argc, char ** argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();

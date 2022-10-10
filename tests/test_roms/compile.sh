@@ -15,4 +15,6 @@ rgbasm -L -o 16bit_ld/test_rom_sp.o 16bit_ld/test_rom_sp.asm
 rgblink -o 16bit_ld/test_rom_sp.gb 16bit_ld/test_rom_sp.o
 rgbfix -v -p 0xFF 16bit_ld/test_rom_sp.gb
 
-
+rgbasm -L -o alu/alu1.o alu/alu1.asm
+rgblink -o alu/alu1.gb alu/alu1.o
+rgbfix -v -p 0xFF alu/alu1.gb
