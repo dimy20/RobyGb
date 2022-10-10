@@ -306,7 +306,9 @@ std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_stack() const{
 
 std::vector<Gb_core::alu> Gb_core::opcodes_alu() const{
 	return {alu::ADD_A_B, alu::ADD_A_C, alu::ADD_A_D, alu::ADD_A_E, alu::ADD_A_H,
-			alu::ADD_A_L, alu::ADD_A_HL_, alu::ADD_A_A};
+			alu::ADD_A_L, alu::ADD_A_HL_, alu::ADD_A_A, alu::ADC_A_B, alu::ADC_A_C,
+			alu::ADC_A_D, alu::ADC_A_E, alu::ADC_A_H, alu::ADC_A_L, alu::ADC_A_HL_,
+			alu::ADC_A_A};
 };
 
 void Gb_core::_8bit_ld_ff00(){
@@ -383,28 +385,57 @@ void Gb_core::_16bit_ldsp(){
 
 void Gb_core::set_flag(Gb_core::flag f){ m_registerAF.lo |= (0x1 << (7 - f)); };
 void Gb_core::unset_flag(Gb_core::flag f){ m_registerAF.lo &= ~(0x1 << (7 - f)); };
-	
 // ---- ----
-void Gb_core::x8_alu_add(BYTE& r1, BYTE r2){
-	for(int i = 4; i <= 7; i++) unset_flag(static_cast<flag>(i));
-	if((r1 & 0x0f) + (r2 + 0x0f) > 0x0f) set_flag(flag::HALF_CARRY);
-	if(static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff) set_flag(flag::CARRY);
-	if(r1 + r2 == 0) set_flag(flag::ZERO);
-	r1 += r2;
+void Gb_core::x8_alu_add(BYTE& r1, BYTE r2, bool add_carry){
+	if(add_carry){
+		BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
+		// overflow?
+		unset_flag(HALF_CARRY);
+		if((r1 & 0x0f) + (r2 + 0x0f) + c_flag > 0x0f) set_flag(flag::HALF_CARRY);
+			
+		unset_flag(flag::CARRY);
+		if(static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff)
+			set_flag(flag::CARRY);
+
+
+		if(r1 + r2 + c_flag == 0) set_flag(flag::ZERO);
+		r1 += r2 + c_flag;
+
+	}else{
+		unset_flag(flag::HALF_CARRY);
+		if((r1 & 0x0f) + (r2 + 0x0f) > 0x0f) set_flag(flag::HALF_CARRY);
+
+		unset_flag(flag::CARRY);
+		if(static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff) set_flag(flag::CARRY);
+
+		unset_flag(flag::ZERO);
+		if(r1 + r2 == 0) set_flag(flag::ZERO);
+		r1 += r2;
+	};
 };
 
 void Gb_core::alu_add(){
 	auto opcode = m_memory->read(m_pc);
 	switch(static_cast<alu>(opcode)){
-		case alu::ADD_A_B: x8_alu_add(m_registerAF.hi, m_registerBC.hi); break;
-		case alu::ADD_A_C: x8_alu_add(m_registerAF.hi, m_registerBC.lo); break;
-		case alu::ADD_A_D: x8_alu_add(m_registerAF.hi, m_registerDE.hi); break;
-		case alu::ADD_A_E: x8_alu_add(m_registerAF.hi, m_registerDE.lo); break;
-		case alu::ADD_A_H: x8_alu_add(m_registerAF.hi, m_registerHL.hi); break;
-		case alu::ADD_A_L: x8_alu_add(m_registerAF.hi, m_registerHL.lo); break;
-		case alu::ADD_A_A: x8_alu_add(m_registerAF.hi, m_registerAF.hi); break;
+		case alu::ADD_A_B: x8_alu_add(m_registerAF.hi, m_registerBC.hi, false); break;
+		case alu::ADD_A_C: x8_alu_add(m_registerAF.hi, m_registerBC.lo, false); break;
+		case alu::ADD_A_D: x8_alu_add(m_registerAF.hi, m_registerDE.hi, false); break;
+		case alu::ADD_A_E: x8_alu_add(m_registerAF.hi, m_registerDE.lo, false); break;
+		case alu::ADD_A_H: x8_alu_add(m_registerAF.hi, m_registerHL.hi, false); break;
+		case alu::ADD_A_L: x8_alu_add(m_registerAF.hi, m_registerHL.lo, false); break;
+		case alu::ADD_A_A: x8_alu_add(m_registerAF.hi, m_registerAF.hi, false); break;
 		case alu::ADD_A_HL_:
-			x8_alu_add(m_registerAF.hi, m_memory->read(m_registerHL.pair));
+			x8_alu_add(m_registerAF.hi, m_memory->read(m_registerHL.pair), false);
+			break;
+		case alu::ADC_A_B: x8_alu_add(m_registerAF.hi, m_registerBC.hi, true); break;
+		case alu::ADC_A_C: x8_alu_add(m_registerAF.hi, m_registerBC.lo, true); break;
+		case alu::ADC_A_D: x8_alu_add(m_registerAF.hi, m_registerDE.hi, true); break;
+		case alu::ADC_A_E: x8_alu_add(m_registerAF.hi, m_registerDE.lo, true); break;
+		case alu::ADC_A_H: x8_alu_add(m_registerAF.hi, m_registerHL.hi, true); break;
+		case alu::ADC_A_L: x8_alu_add(m_registerAF.hi, m_registerHL.lo, true); break;
+		case alu::ADC_A_A: x8_alu_add(m_registerAF.hi, m_registerAF.hi, true); break;
+		case alu::ADC_A_HL_:
+			x8_alu_add(m_registerAF.hi, m_memory->read(m_registerHL.pair), true);
 			break;
 		default:
 			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;

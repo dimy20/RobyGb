@@ -93,7 +93,7 @@ class Gb_core{
 		void jmp_nn();
 
 		void alu_add();
-		void x8_alu_add(BYTE& r1, BYTE r2);
+		void x8_alu_add(BYTE& r1, BYTE r2, bool add_carry);
 		void set_flag(flag f);
 		void unset_flag(flag f);
 
@@ -151,14 +151,14 @@ enum class Gb_core::ld_16bit{
 };
 
 enum class Gb_core::alu{
-	ADD_A_B = 0x80,
-	ADD_A_C = 0x81,
-	ADD_A_D = 0x82,
-	ADD_A_E = 0x83,
-	ADD_A_H = 0x84,
-	ADD_A_L = 0x85,
-	ADD_A_HL_ = 0x86,
-	ADD_A_A = 0x87,
+	ADD_A_B = 0x80,  ADC_A_B = 0x88,
+	ADD_A_C = 0x81,  ADC_A_C = 0x89,
+	ADD_A_D = 0x82,  ADC_A_D = 0x8a,
+	ADD_A_E = 0x83,  ADC_A_E = 0x8b,
+	ADD_A_H = 0x84,  ADC_A_H = 0x8c,
+	ADD_A_L = 0x85,  ADC_A_L = 0x8d,
+	ADD_A_HL_ = 0x86,ADC_A_HL_ = 0x8e,
+	ADD_A_A = 0x87,  ADC_A_A = 0x8f,
 };
 
 enum class Gb_core::i_control{
