@@ -88,6 +88,40 @@ TEST(Core, ld_16bit){
 	ASSERT_EQ(core.sp().pair, 0xfffe);
 }
 
+TEST(Core, ld_16bit_sp){
+	Gb_cartridge cart("../../tests/test_roms/16bit_ld/test_rom_sp.gb");
+	Mem_mu memory;
+	memory.init(&cart);
+	Gb_core core(&memory);
+	core.init();
+	core.emulate_cycles(1);
+
+	core.emulate_cycles(2);
+
+	ASSERT_EQ(core.r_BC().pair, 1024);
+	auto v = (memory.read(core.sp().pair + 2) << 8) | memory.read(core.sp().pair + 1);
+	//ASSERT_EQ(v, 1024);
+	core.emulate_cycles(2);
+	ASSERT_EQ(core.r_BC().pair, 1024);
+
+	core.emulate_cycles(2);
+	v = (memory.read(core.sp().pair + 2) << 8) | memory.read(core.sp().pair + 1);
+	ASSERT_EQ(v, 1024);
+	core.emulate_cycles(2);
+	ASSERT_EQ(core.r_DE().pair, 1024);
+
+	core.emulate_cycles(2);
+	v = (memory.read(core.sp().pair + 2) << 8) | memory.read(core.sp().pair + 1);
+	ASSERT_EQ(v, 1024);
+	core.emulate_cycles(2);
+	ASSERT_EQ(core.r_HL().pair, 1024);
+
+	core.emulate_cycles(2);
+	ASSERT_EQ(20, memory.read(core.sp().pair + 2));
+	core.emulate_cycles(1);
+	ASSERT_EQ(core.r_AF().hi, 20);
+}
+
 int main(int argc, char ** argv){
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
