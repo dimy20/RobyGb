@@ -100,6 +100,8 @@ class Gb_core{
 		void x8_alu_add(BYTE r2, bool add_carry);
 		void x8_alu_sub(BYTE r2, bool sub_carry);
 		void x8_alu_and(BYTE r2);
+		void x8_alu_or(BYTE r2);
+		void x8_alu_cp(BYTE r2);
 
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
@@ -166,10 +168,10 @@ enum class Gb_core::alu{
 	ADD_A_HL_ = 0x86,ADC_A_HL_ =0x8e,SUB_A_HL_ = 0x96,SBC_A_HL_ = 0x9e,AND_A_HL_ = 0xa6,
 	ADD_A_A = 0x87,  ADC_A_A = 0x8f, SUB_A_A = 0x97, SBC_A_A = 0x9f, AND_A_A = 0xa7,
 
-	XOR_A_B = 0xa8,
-	XOR_A_C = 0xa9,
-	XOR_A_D = 0xaa,
-	XOR_A_E = 0xab,
+	XOR_A_B = 0xa8, OR_START = 0xb0,
+	XOR_A_C = 0xa9, OR_END = 0xb7,
+	XOR_A_D = 0xaa, CP_START = 0xb8,
+	XOR_A_E = 0xab, CP_END = 0xbf,
 	XOR_A_H = 0xac,
 	XOR_A_L = 0xad,
 	XOR_A_HL_ = 0xae,
