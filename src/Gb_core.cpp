@@ -75,23 +75,42 @@ void Gb_core::build_opcode_matrix(){
 	m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 };
 
+void Gb_core::build_registers_rmap(){
+	m_reg_rmap[reg_order::REG_B] = [this]()->BYTE{ return m_registerBC.hi; };
+	m_reg_rmap[reg_order::REG_C] = [this]()->BYTE{ return m_registerBC.lo; };
+
+	m_reg_rmap[reg_order::REG_D] = [this]()->BYTE{ return m_registerDE.hi; };
+	m_reg_rmap[reg_order::REG_E] = [this]()->BYTE{ return m_registerDE.lo; };
+
+	m_reg_rmap[reg_order::REG_H] = [this]()->BYTE{ return m_registerHL.hi; };
+	m_reg_rmap[reg_order::REG_L] = [this]()->BYTE{ return m_registerHL.lo; };
+
+	m_reg_rmap[reg_order::REG_HL] = [this]() -> BYTE{ return m_memory->read(m_registerHL.pair); };
+	m_reg_rmap[reg_order::REG_A] = [this]()->BYTE{ return m_registerAF.hi; };
+};
+
+void Gb_core::build_registers_wmap(){
+	// write map
+	m_reg_wmap[reg_order::REG_B] = [this](BYTE v)->BYTE{ return(m_registerBC.hi = v);};
+	m_reg_wmap[reg_order::REG_C] = [this](BYTE v)->BYTE{ return(m_registerBC.lo = v);};
+	m_reg_wmap[reg_order::REG_D] = [this](BYTE v)->BYTE{ return(m_registerDE.hi = v);};
+	m_reg_wmap[reg_order::REG_E] = [this](BYTE v)->BYTE{ return(m_registerDE.lo = v);};
+	m_reg_wmap[reg_order::REG_H] = [this](BYTE v)->BYTE{ return(m_registerHL.hi = v);};
+	m_reg_wmap[reg_order::REG_L] = [this](BYTE v)->BYTE{ return(m_registerHL.lo = v);};
+	m_reg_wmap[reg_order::REG_HL] = [this](BYTE v)->BYTE{
+		m_memory->write(m_registerHL.pair, v);
+		return m_memory->read(m_registerHL.pair);
+	};
+	m_reg_wmap[reg_order::REG_A] = [this](BYTE v)->BYTE{ return(m_registerAF.hi = v);};
+};
+
 void Gb_core::init(){
 	build_opcode_matrix();
 	m_sp.pair = SP_INIT_ADDR;
 	m_registerBC.pair = 0;
 	m_registerAF.pair = 0;
-
-	m_reg_map[reg_order::REG_B] = [this]()->BYTE{ return m_registerBC.hi; };
-	m_reg_map[reg_order::REG_C] = [this]()->BYTE{ return m_registerBC.lo; };
-
-	m_reg_map[reg_order::REG_D] = [this]()->BYTE{ return m_registerDE.hi; };
-	m_reg_map[reg_order::REG_E] = [this]()->BYTE{ return m_registerDE.lo; };
-
-	m_reg_map[reg_order::REG_H] = [this]()->BYTE{ return m_registerHL.hi; };
-	m_reg_map[reg_order::REG_L] = [this]()->BYTE{ return m_registerHL.lo; };
-
-	m_reg_map[reg_order::REG_HL] = [this]() -> BYTE{ return m_memory->read(m_registerHL.pair); };
-	m_reg_map[reg_order::REG_A] = [this]()->BYTE{ return m_registerAF.hi; };
+	build_registers_rmap();
+	build_registers_wmap();
 };
 
 // real cycles not taken into account for now.
@@ -511,32 +530,32 @@ void Gb_core::core_alu(){
 	bool carry = (opcode & 0x0f) > 7 ? true : false;
 
 	if((alu)opcode >= alu::ADD_A_B && (alu)opcode <= alu::ADC_A_A){
-		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
 		x8_alu_add(r2, carry);
 	};
 
 	if((alu)opcode >= alu::SUB_A_B && (alu)opcode <= alu::SBC_A_A){
-		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
 		x8_alu_sub(r2, carry);
 	};
 
 	if((alu)opcode >= alu::AND_A_B && (alu)opcode <= alu::AND_A_A){
-		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
 		x8_alu_and(r2);
 	};
 
 	if((alu)opcode >= alu::XOR_A_B && (alu)opcode <= alu::XOR_A_A){
-		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
 		x8_alu_xor(r2);
 	};
 
 	if((alu)opcode >= alu::OR_START && (alu)opcode <= alu::OR_END){
-		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
 		x8_alu_or(r2);
 	};
 
 	if((alu)opcode >= alu::CP_START && (alu)opcode <= alu::CP_END){
-		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
 		x8_alu_cp(r2);
 	};
 

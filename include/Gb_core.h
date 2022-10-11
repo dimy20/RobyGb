@@ -76,6 +76,8 @@ class Gb_core{
 
 	private:
 		void build_opcode_matrix();
+		void build_registers_rmap();
+		void build_registers_wmap();
 
 		int _8bit_load(BYTE& rg, BYTE value);
 		void _8bit_ld_r1r2();
@@ -126,7 +128,8 @@ class Gb_core{
 		Mem_mu * m_memory;
 
 		std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
-		std::map<int, std::function<BYTE(void)>> m_reg_map;
+		std::map<int, std::function<BYTE(void)>> m_reg_rmap;
+		std::map<int, std::function<BYTE(BYTE)>> m_reg_wmap;
 };
 
 enum class Gb_core::ld_8bit{
