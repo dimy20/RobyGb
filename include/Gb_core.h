@@ -101,6 +101,7 @@ class Gb_core{
 		void x8_alu_or(BYTE r2);
 		void x8_alu_cp(BYTE r2);
 		void x8_alu_inc(reg_order n);
+		void x8_alu_dec(reg_order n);
 
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
