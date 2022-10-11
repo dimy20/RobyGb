@@ -92,12 +92,13 @@ class Gb_core{
 
 		void jmp_nn();
 
-		void alu_add();
-		void x8_alu_add(BYTE& r1, BYTE r2, bool add_carry);
 		void set_flag(flag f);
 		void unset_flag(flag f);
+		void alu_add();
 		void alu_sub();
-		void x8_alu_sub(BYTE& r1, BYTE r2, bool sub_carry);
+		void alu_and();
+		void x8_alu_add(BYTE r2, bool add_carry);
+		void x8_alu_sub(BYTE r2, bool sub_carry);
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
 		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;
