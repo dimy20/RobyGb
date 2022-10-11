@@ -99,6 +99,7 @@ class Gb_core{
 		void alu_and();
 		void x8_alu_add(BYTE r2, bool add_carry);
 		void x8_alu_sub(BYTE r2, bool sub_carry);
+		void x8_alu_and(BYTE r2);
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
 		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;
@@ -122,6 +123,7 @@ class Gb_core{
 		Mem_mu * m_memory;
 
 		std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
+		std::map<int, BYTE *> m_reg_map;
 };
 
 enum class Gb_core::ld_8bit{
