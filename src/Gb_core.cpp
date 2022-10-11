@@ -70,6 +70,16 @@ void Gb_core::build_opcode_matrix(){
 		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	};
 
+	for(int opcode = 0x04; opcode <= 0x34; opcode += 0x10){
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	}
+
+	for(int opcode = 0x0c; opcode <= 0x3c; opcode += 0x10){
+		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	}
+
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
 	auto opcode = static_cast<BYTE>(i_control::JMP_NN);
 	m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
@@ -525,9 +535,19 @@ void Gb_core::x8_alu_cp(BYTE r2){
 	if(a < r2) set_flag(flag::CARRY);
 };
 
+void Gb_core::x8_alu_inc(reg_order n){
+	auto r = m_reg_rmap[static_cast<reg_order>(n)]();
+	auto res = m_reg_wmap[n](r + 1);
+	if(res == 0) set_flag(flag::ZERO);
+	unset_flag(flag::SUBS);
+	if((res & 0x0f) == 0x00) set_flag(flag::HALF_CARRY);
+};
+
 void Gb_core::core_alu(){
+
 	auto opcode = m_memory->read(m_pc);
 	bool carry = (opcode & 0x0f) > 7 ? true : false;
+
 
 	if((alu)opcode >= alu::ADD_A_B && (alu)opcode <= alu::ADC_A_A){
 		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
@@ -557,6 +577,13 @@ void Gb_core::core_alu(){
 	if((alu)opcode >= alu::CP_START && (alu)opcode <= alu::CP_END){
 		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
 		x8_alu_cp(r2);
+	};
+
+	if(row(opcode) < 8 && (col(opcode) == 4 || col(opcode) == 0xc)){
+		int reg_num;
+		if(col(opcode) == 4) reg_num = row(opcode) * 2;
+		else reg_num = (row(opcode) * 2) + 1;
+		x8_alu_inc(static_cast<reg_order>(reg_num));
 	};
 
 	m_pc++;

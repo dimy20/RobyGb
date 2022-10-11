@@ -25,10 +25,6 @@
 #define ROW(opcode) (static_cast<BYTE>(opcode) & 0xf0) >> 4
 #define COL(opcode) (static_cast<BYTE>(opcode) & 0x0f)
 
-/* BC -> ------- -------- 
- *	     low C    high B 
- **/
-
 #define LD_8BIT_CYCLES 8
 
 struct Gb_instruction;
@@ -104,6 +100,7 @@ class Gb_core{
 		void x8_alu_and(BYTE r2);
 		void x8_alu_or(BYTE r2);
 		void x8_alu_cp(BYTE r2);
+		void x8_alu_inc(reg_order n);
 
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
@@ -114,6 +111,10 @@ class Gb_core{
 		std::vector<ld_16bit> opcodes_16bitld_u16() const;
 		std::vector<ld_16bit> opcodes_16bitld_stack() const;
 		std::vector<alu> opcodes_alu() const;
+
+		constexpr BYTE row(BYTE opcode){ return (opcode & 0xf0) >> 4; };
+		constexpr BYTE col(BYTE opcode){ return (opcode & 0x0f); };
+
 	private:
 		Gb_register m_registerAF;
 		Gb_register m_registerBC;
