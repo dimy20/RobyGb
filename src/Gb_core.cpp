@@ -439,10 +439,10 @@ void Gb_core::x8_alu_sub(BYTE r2, bool sub_carry){
 	if(sub_carry){
 		BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
 		unset_flag(flag::HALF_CARRY);
-		if(static_cast<int>(r1 & 0x0f) - static_cast<int>(r2 & 0x0f) + c_flag > 0)
+		if(static_cast<int>(r1 & 0x0f) < (static_cast<int>(r2 & 0x0f) + c_flag))
 			set_flag(flag::HALF_CARRY);
 
-		if((r2 + c_flag) <= r1)
+		if(r1 < (r2 + c_flag))
 			set_flag(flag::CARRY);
 
 		unset_flag(flag::ZERO);
@@ -452,11 +452,11 @@ void Gb_core::x8_alu_sub(BYTE r2, bool sub_carry){
 		if(r1 - r2 == 0) set_flag(flag::ZERO);
 
 		unset_flag(flag::HALF_CARRY);
-		if(static_cast<int>(r1 & 0x0f) - static_cast<int>(r2 & 0x0f) > 0)
+		if(static_cast<int>(r1 & 0x0f) < static_cast<int>(r2 & 0x0f))
 			set_flag(flag::HALF_CARRY);
 		// no borrow
 
-		if(r2 <= r1)
+		if(r1 < r2)
 			set_flag(flag::CARRY);
 		r1 -= r2;
 	}
