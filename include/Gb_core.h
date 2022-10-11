@@ -5,6 +5,7 @@
 #include <vector>
 #include "Gb_types.h"
 #include "Memory.h"
+#include <functional>
 /* Screen */
 #define SCREEN_WIDTH 160
 #define SCREEN_HEIGHT 144
@@ -86,6 +87,7 @@ class Gb_core{
 		void _8bit_ld_Axx();
 		void _8bit_ld_ff00();
 
+		void core_alu();
 
 		void _16_bit_ld();
 		void _16bit_ldsp();
@@ -94,12 +96,11 @@ class Gb_core{
 
 		void set_flag(flag f);
 		void unset_flag(flag f);
-		void alu_add();
-		void alu_sub();
-		void alu_and();
+		void x8_alu_xor(BYTE r2);
 		void x8_alu_add(BYTE r2, bool add_carry);
 		void x8_alu_sub(BYTE r2, bool sub_carry);
 		void x8_alu_and(BYTE r2);
+
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
 		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;
@@ -123,7 +124,7 @@ class Gb_core{
 		Mem_mu * m_memory;
 
 		std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
-		std::map<int, BYTE *> m_reg_map;
+		std::map<int, std::function<BYTE(void)>> m_reg_map;
 };
 
 enum class Gb_core::ld_8bit{
@@ -156,14 +157,23 @@ enum class Gb_core::ld_16bit{
 };
 
 enum class Gb_core::alu{
-	ADD_A_B = 0x80,  ADC_A_B = 0x88, SUB_A_B = 0x90, SBC_A_B = 0x98,
-	ADD_A_C = 0x81,  ADC_A_C = 0x89, SUB_A_C = 0x91, SBC_A_C = 0x99,
-	ADD_A_D = 0x82,  ADC_A_D = 0x8a, SUB_A_D = 0x92, SBC_A_D = 0x9a,
-	ADD_A_E = 0x83,  ADC_A_E = 0x8b, SUB_A_E = 0x93, SBC_A_E = 0x9b,
-	ADD_A_H = 0x84,  ADC_A_H = 0x8c, SUB_A_H = 0x94, SBC_A_H = 0x9c,
-	ADD_A_L = 0x85,  ADC_A_L = 0x8d, SUB_A_L = 0x95, SBC_A_L = 0x9d,
-	ADD_A_HL_ = 0x86,ADC_A_HL_ = 0x8e, SUB_A_HL_ = 0x96, SBC_A_HL_ = 0x9e,
-	ADD_A_A = 0x87,  ADC_A_A = 0x8f, SUB_A_A = 0x97, SBC_A_A = 0x9f,
+	ADD_A_B = 0x80,  ADC_A_B = 0x88, SUB_A_B = 0x90, SBC_A_B = 0x98, AND_A_B = 0xa0,
+	ADD_A_C = 0x81,  ADC_A_C = 0x89, SUB_A_C = 0x91, SBC_A_C = 0x99, AND_A_C = 0xa1,
+	ADD_A_D = 0x82,  ADC_A_D = 0x8a, SUB_A_D = 0x92, SBC_A_D = 0x9a, AND_A_D = 0xa2,
+	ADD_A_E = 0x83,  ADC_A_E = 0x8b, SUB_A_E = 0x93, SBC_A_E = 0x9b, AND_A_E = 0xa3,
+	ADD_A_H = 0x84,  ADC_A_H = 0x8c, SUB_A_H = 0x94, SBC_A_H = 0x9c, AND_A_H = 0xa4,
+	ADD_A_L = 0x85,  ADC_A_L = 0x8d, SUB_A_L = 0x95, SBC_A_L = 0x9d, AND_A_L = 0xa5,
+	ADD_A_HL_ = 0x86,ADC_A_HL_ =0x8e,SUB_A_HL_ = 0x96,SBC_A_HL_ = 0x9e,AND_A_HL_ = 0xa6,
+	ADD_A_A = 0x87,  ADC_A_A = 0x8f, SUB_A_A = 0x97, SBC_A_A = 0x9f, AND_A_A = 0xa7,
+
+	XOR_A_B = 0xa8,
+	XOR_A_C = 0xa9,
+	XOR_A_D = 0xaa,
+	XOR_A_E = 0xab,
+	XOR_A_H = 0xac,
+	XOR_A_L = 0xad,
+	XOR_A_HL_ = 0xae,
+	XOR_A_A = 0xaf,
 };
 
 enum class Gb_core::i_control{

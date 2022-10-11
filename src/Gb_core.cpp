@@ -56,19 +56,8 @@ void Gb_core::build_opcode_matrix(){
 
 	for(auto opcode : opcodes_alu()){
 		std::shared_ptr<Gb_instruction> ptr;
-		if(opcode >= alu::ADD_A_B && opcode <= alu::ADC_A_A){
-			ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),
-														&Gb_core::alu_add, 12);
-			m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
-		}else if(opcode >= alu::SUB_A_B && opcode <= alu::SBC_A_A){
-			ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::alu_sub, 12);
-			m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
-		};
-		if(opcode >= alu::AND_A_B){
-			ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),
-					&Gb_core::alu_and, 12);
-			m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
-		}
+		ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	}
 
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
@@ -82,14 +71,17 @@ void Gb_core::init(){
 	m_registerBC.pair = 0;
 	m_registerAF.pair = 0;
 
-	m_reg_map[reg_order::REG_B] = &m_registerBC.hi;
-	m_reg_map[reg_order::REG_C] = &m_registerBC.lo;
-	m_reg_map[reg_order::REG_D] = &m_registerDE.hi;
-	m_reg_map[reg_order::REG_E] = &m_registerDE.lo;
-	m_reg_map[reg_order::REG_H] = &m_registerHL.hi;
-	m_reg_map[reg_order::REG_L] = &m_registerHL.lo;
-	m_reg_map[reg_order::REG_HL] = nullptr;
-	m_reg_map[reg_order::REG_A] = &m_registerAF.hi;
+	m_reg_map[reg_order::REG_B] = [this]()->BYTE{ return m_registerBC.hi; };
+	m_reg_map[reg_order::REG_C] = [this]()->BYTE{ return m_registerBC.lo; };
+
+	m_reg_map[reg_order::REG_D] = [this]()->BYTE{ return m_registerDE.hi; };
+	m_reg_map[reg_order::REG_E] = [this]()->BYTE{ return m_registerDE.lo; };
+
+	m_reg_map[reg_order::REG_H] = [this]()->BYTE{ return m_registerHL.hi; };
+	m_reg_map[reg_order::REG_L] = [this]()->BYTE{ return m_registerHL.lo; };
+
+	m_reg_map[reg_order::REG_HL] = [this]() -> BYTE{ return m_memory->read(m_registerHL.pair); };
+	m_reg_map[reg_order::REG_A] = [this]()->BYTE{ return m_registerAF.hi; };
 };
 
 // real cycles not taken into account for now.
@@ -440,18 +432,6 @@ void Gb_core::x8_alu_add(BYTE r2, bool add_carry){
 	};
 };
 
-void Gb_core::alu_add(){
-	auto opcode = m_memory->read(m_pc);
-	bool add_carry = (opcode & 0x0f) > 7 ? true : false;
-	if(((opcode & 0x0f) % 8) == 6)
-		x8_alu_add(m_memory->read(m_registerHL.pair), add_carry);
-	else{
-		auto reg = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)];
-		x8_alu_add(*reg, add_carry);
-	}
-	m_pc++;
-};
-
 void Gb_core::x8_alu_sub(BYTE r2, bool sub_carry){
 	BYTE& r1 = m_registerAF.hi;
 	set_flag(flag::SUBS);
@@ -482,19 +462,6 @@ void Gb_core::x8_alu_sub(BYTE r2, bool sub_carry){
 	}
 };
 
-void Gb_core::alu_sub(){
-	auto opcode = m_memory->read(m_pc);
-
-	bool sub_carry = (opcode & 0x0f) > 7 ? true : false;
-	if(((opcode & 0x0f) % 8) == 6)
-		x8_alu_sub(m_memory->read(m_registerHL.pair), sub_carry);
-	else{
-		auto reg = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)];
-		x8_alu_sub(*reg, sub_carry);
-	}
-	m_pc++;
-};
-
 void Gb_core::x8_alu_and(BYTE r2){
 	m_registerAF.hi &= r2;
 	if(m_registerAF.hi == 0) set_flag(flag::ZERO);
@@ -503,13 +470,37 @@ void Gb_core::x8_alu_and(BYTE r2){
 	unset_flag(flag::SUBS);
 };
 
-void Gb_core::alu_and(){
+void Gb_core::x8_alu_xor(BYTE r2){
+	m_registerAF.hi ^= r2;
+	if(m_registerAF.hi == 0) set_flag(flag::ZERO);
+	unset_flag(flag::HALF_CARRY);
+	unset_flag(flag::HALF_CARRY);
+	unset_flag(flag::SUBS);
+};
+
+
+void Gb_core::core_alu(){
 	auto opcode = m_memory->read(m_pc);
-	
-	if(((opcode & 0x0f) % 8) == 6) x8_alu_and(m_memory->read(m_registerHL.pair));
-	else{
-		auto reg = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)];
-		x8_alu_and(*reg);
-	}
+	bool carry = (opcode & 0x0f) > 7 ? true : false;
+
+	if((alu)opcode >= alu::ADD_A_B && (alu)opcode <= alu::ADC_A_A){
+		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		x8_alu_add(r2, carry);
+	};
+
+	if((alu)opcode >= alu::SUB_A_B && (alu)opcode <= alu::SBC_A_A){
+		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		x8_alu_sub(r2, carry);
+	};
+
+	if((alu)opcode >= alu::AND_A_B && (alu)opcode <= alu::AND_A_A){
+		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		x8_alu_and(r2);
+	};
+
+	if((alu)opcode >= alu::XOR_A_B && (alu)opcode <= alu::XOR_A_A){
+		auto r2 = m_reg_map[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		x8_alu_xor(r2);
+	};
 	m_pc++;
 };
