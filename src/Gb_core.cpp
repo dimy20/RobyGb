@@ -10,7 +10,7 @@ void Gb_core::build_alu_x80_xbf(){
 		m_opcode_mat[8][j] = [this](){
 			auto opcode = m_memory->read(m_pc);
 			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-			x8_alu_add(r2, false);
+			x8_alu_add(r2);
 		};
 	};
 
@@ -18,7 +18,7 @@ void Gb_core::build_alu_x80_xbf(){
 		m_opcode_mat[8][j] = [this](){
 			auto opcode = m_memory->read(m_pc);
 			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-			x8_alu_add(r2, true);
+			x8_alu_adc(r2);
 		};
 	};
 
@@ -26,7 +26,7 @@ void Gb_core::build_alu_x80_xbf(){
 		m_opcode_mat[9][j] = [this](){
 			auto opcode = m_memory->read(m_pc);
 			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-			x8_alu_sub(r2, false);
+			x8_alu_sub(r2);
 		};
 	};
 
@@ -34,7 +34,7 @@ void Gb_core::build_alu_x80_xbf(){
 		m_opcode_mat[9][j] = [this](){
 			auto opcode = m_memory->read(m_pc);
 			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-			x8_alu_sub(r2, true);
+			x8_alu_sbc(r2);
 		};
 	};
 
@@ -477,64 +477,74 @@ void Gb_core::unset_flag(Gb_core::flag f){ m_registerAF.lo &= ~(0x1 << (7 - f));
 BYTE Gb_core::get_flag(flag f){ return ((m_registerAF.lo >> (7 - f)) & 0x1); };
 
 // ---- ----
-void Gb_core::x8_alu_add(BYTE r2, bool add_carry){
+void Gb_core::x8_alu_add(BYTE r2){
 	BYTE& r1 = m_registerAF.hi;
-	if(add_carry){
-		BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
-		// overflow?
-		unset_flag(HALF_CARRY);
-		if(((r1 & 0x0f) + (r2 + 0x0f) + c_flag) & 0x10) set_flag(flag::HALF_CARRY);
-			
-		unset_flag(flag::CARRY);
-		if(static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff)
-			set_flag(flag::CARRY);
 
+	unset_flag(flag::HALF_CARRY);
+	if(((r1 & 0x0f) + (r2 + 0x0f)) & 0x10) set_flag(flag::HALF_CARRY);
 
-		if(r1 + r2 + c_flag == 0) set_flag(flag::ZERO);
-		r1 += r2 + c_flag;
+	unset_flag(flag::CARRY);
+	if(static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff) set_flag(flag::CARRY);
 
-	}else{
-		unset_flag(flag::HALF_CARRY);
-		if(((r1 & 0x0f) + (r2 + 0x0f)) & 0x10) set_flag(flag::HALF_CARRY);
+	unset_flag(flag::ZERO);
+	if(r1 + r2 == 0) set_flag(flag::ZERO);
+	r1 += r2;
 
-		unset_flag(flag::CARRY);
-		if(static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff) set_flag(flag::CARRY);
-
-		unset_flag(flag::ZERO);
-		if(r1 + r2 == 0) set_flag(flag::ZERO);
-		r1 += r2;
-	};
 	m_pc++;
 };
 
-void Gb_core::x8_alu_sub(BYTE r2, bool sub_carry){
+void Gb_core::x8_alu_adc(BYTE r2){
+	BYTE& r1 = m_registerAF.hi;
+
+	BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
+	// overflow?
+	unset_flag(HALF_CARRY);
+	if(((r1 & 0x0f) + (r2 + 0x0f) + c_flag) & 0x10) set_flag(flag::HALF_CARRY);
+		
+	unset_flag(flag::CARRY);
+	if(static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff)
+		set_flag(flag::CARRY);
+
+
+	if(r1 + r2 + c_flag == 0) set_flag(flag::ZERO);
+	r1 += r2 + c_flag;
+
+	m_pc++;
+};
+
+void Gb_core::x8_alu_sub(BYTE r2){
 	BYTE& r1 = m_registerAF.hi;
 	set_flag(flag::SUBS);
 
-	if(sub_carry){
-		BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
-		unset_flag(flag::HALF_CARRY);
-		if(static_cast<int>(r1 & 0x0f) < (static_cast<int>(r2 & 0x0f) + c_flag))
-			set_flag(flag::HALF_CARRY);
+	unset_flag(flag::ZERO);
+	if(r1 - r2 == 0) set_flag(flag::ZERO);
 
-		if(r1 < (r2 + c_flag))
-			set_flag(flag::CARRY);
+	unset_flag(flag::HALF_CARRY);
+	if(static_cast<int>(r1 & 0x0f) < static_cast<int>(r2 & 0x0f))
+		set_flag(flag::HALF_CARRY);
+	// no borrow
 
-		unset_flag(flag::ZERO);
-		if(r1 - (r2 + c_flag) == 0) set_flag(flag::ZERO);
-	}else{
-		unset_flag(flag::ZERO);
-		if(r1 - r2 == 0) set_flag(flag::ZERO);
+	if(r1 < r2)
+		set_flag(flag::CARRY);
+	r1 -= r2;
+	m_pc++;
+};
 
-		unset_flag(flag::HALF_CARRY);
-		if(static_cast<int>(r1 & 0x0f) < static_cast<int>(r2 & 0x0f))
-			set_flag(flag::HALF_CARRY);
-		// no borrow
+void Gb_core::x8_alu_sbc(BYTE r2){
+	BYTE& r1 = m_registerAF.hi;
+	set_flag(flag::SUBS);
 
-		if(r1 < r2)
-			set_flag(flag::CARRY);
-		r1 -= r2;
-	}
+	BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
+	unset_flag(flag::HALF_CARRY);
+
+	if(static_cast<int>(r1 & 0x0f) < (static_cast<int>(r2 & 0x0f) + c_flag))
+		set_flag(flag::HALF_CARRY);
+
+	if(r1 < (r2 + c_flag))
+		set_flag(flag::CARRY);
+
+	unset_flag(flag::ZERO);
+	if(r1 - (r2 + c_flag) == 0) set_flag(flag::ZERO);
 	m_pc++;
 };
 

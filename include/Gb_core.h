@@ -98,8 +98,10 @@ class Gb_core{
 		BYTE get_flag(flag f);
 
 		void x8_alu_xor(BYTE r2);
-		void x8_alu_add(BYTE r2, bool add_carry);
-		void x8_alu_sub(BYTE r2, bool sub_carry);
+		void x8_alu_add(BYTE r2);
+		void x8_alu_adc(BYTE r2);
+		void x8_alu_sub(BYTE r2);
+		void x8_alu_sbc(BYTE r2);
 		void x8_alu_and(BYTE r2);
 		void x8_alu_or(BYTE r2);
 		void x8_alu_cp(BYTE r2);
