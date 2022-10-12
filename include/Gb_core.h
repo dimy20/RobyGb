@@ -107,6 +107,7 @@ class Gb_core{
 		void x8_alu_daa(); // decimal adjust A, after arithmetic instruction
 		void x8_alu_cpl(); 
 		void x8_alu_ccf(); 
+		void x8_alu_scf(); 
 
 		void pop(WORD& rr, bool af);
 		void push(const WORD& rr);
