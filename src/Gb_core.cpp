@@ -90,6 +90,10 @@ void Gb_core::build_opcode_matrix(){
 		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
 	};
 
+
+	auto daa_ptr = std::make_shared<Gb_instruction>(static_cast<alu>(0x27),&Gb_core::x8_alu_daa, 12);
+	m_opcode_mat[ROW(0x27)][COL(0x27)] = daa_ptr;
+
 	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
 	auto opcode = static_cast<BYTE>(i_control::JMP_NN);
 	m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
@@ -437,7 +441,11 @@ void Gb_core::_16bit_ldsp(){
 };
 
 void Gb_core::set_flag(Gb_core::flag f){ m_registerAF.lo |= (0x1 << (7 - f)); };
+
 void Gb_core::unset_flag(Gb_core::flag f){ m_registerAF.lo &= ~(0x1 << (7 - f)); };
+
+BYTE Gb_core::get_flag(flag f){ return ((m_registerAF.lo >> (7 - f)) & 0x1); };
+
 // ---- ----
 void Gb_core::x8_alu_add(BYTE r2, bool add_carry){
 	BYTE& r1 = m_registerAF.hi;
@@ -598,4 +606,30 @@ void Gb_core::core_alu(){
 	}
 
 	m_pc++;
+};
+
+
+void Gb_core::x8_alu_daa(){
+	BYTE& A = m_registerAF.hi;
+
+	BYTE correction = 0;
+	if(get_flag(flag::HALF_CARRY) || (!get_flag(flag::SUBS) && (A & 0xf) > 9)){
+		correction |= 0x06;
+	};
+
+	if(get_flag(flag::CARRY) || (!get_flag(flag::SUBS) && (A > 0x99))){
+		correction |= 0x60;
+	};
+
+	if(get_flag(flag::SUBS)){
+		if(static_cast<WORD>(A - correction) & 0x100) set_flag(flag::CARRY);
+		A -= correction;
+	}else{
+		if(static_cast<WORD>(A + correction) & 0x100) set_flag(flag::CARRY);
+		A += correction;
+	}
+	
+	if(A == 0) set_flag(flag::ZERO);
+	unset_flag(flag::HALF_CARRY);
+
 };

@@ -94,6 +94,8 @@ class Gb_core{
 
 		void set_flag(flag f);
 		void unset_flag(flag f);
+		BYTE get_flag(flag f);
+
 		void x8_alu_xor(BYTE r2);
 		void x8_alu_add(BYTE r2, bool add_carry);
 		void x8_alu_sub(BYTE r2, bool sub_carry);
@@ -102,6 +104,7 @@ class Gb_core{
 		void x8_alu_cp(BYTE r2);
 		void x8_alu_inc(reg_order n);
 		void x8_alu_dec(reg_order n);
+		void x8_alu_daa(); // decimal adjust A, after arithmetic instruction
 
 		void pop(WORD& rr, bool af);
 		void push(const WORD& rr);
