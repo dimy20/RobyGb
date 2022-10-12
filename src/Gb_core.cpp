@@ -131,6 +131,10 @@ void Gb_core::init(){
 	m_registerAF.pair = 0;
 	build_registers_rmap();
 	build_registers_wmap();
+	m_reg16_map[0] = [this]()->WORD& { return m_registerBC.pair; };
+	m_reg16_map[1] = [this]()->WORD& { return m_registerDE.pair; };
+	m_reg16_map[2] = [this]()->WORD& { return m_registerHL.pair; };
+	m_reg16_map[3] = [this]()->WORD& { return m_registerAF.pair; };
 };
 
 // real cycles not taken into account for now.
@@ -403,51 +407,34 @@ void Gb_core::_8bit_ld_ff00(){
 	m_pc++;
 };
 
+void Gb_core::push(const WORD& rr){
+	m_memory->write(m_sp.pair--, (rr & 0xff00) >> 8);
+	m_memory->write(m_sp.pair--, (rr & 0x00ff));
+};
+
+void Gb_core::pop(WORD& rr, bool af){
+	if(m_sp.pair == SP_INIT_ADDR) return;
+	if(af){
+		rr = (rr & 0xff00) | (m_memory->read(++m_sp.pair));
+		m_sp.pair++;
+	}else{
+		rr = m_memory->read(++m_sp.pair) | (m_memory->read(++m_sp.pair) << 8);
+	}
+};
+
 void Gb_core::_16bit_ldsp(){
 	auto opcode = m_memory->read(m_pc);
-	switch(static_cast<ld_16bit>(opcode)){
-		case ld_16bit::POP_BC:
-			if(m_sp.pair == SP_INIT_ADDR) return;
-			m_registerBC.lo = m_memory->read(++m_sp.pair);
-			m_registerBC.hi = m_memory->read(++m_sp.pair);
-			break;
-		case ld_16bit::POP_DE:
-			if(m_sp.pair == SP_INIT_ADDR) return;
-			m_registerDE.lo = m_memory->read(++m_sp.pair);
-			m_registerDE.hi = m_memory->read(++m_sp.pair);
-			break;
-		case ld_16bit::POP_HL:
-			if(m_sp.pair == SP_INIT_ADDR) return;
-			m_registerHL.lo = m_memory->read(++m_sp.pair);
-			m_registerHL.hi = m_memory->read(++m_sp.pair);
-			break;
-		case ld_16bit::POP_AF:
-			if(m_sp.pair == SP_INIT_ADDR) return;
-			m_registerAF.lo |= m_memory->read(++m_sp.pair) & 0xf0;
-			m_registerAF.hi |= m_memory->read(++m_sp.pair);
-			break;
-		case ld_16bit::PUSH_BC:
-			m_memory->write(m_sp.pair--, m_registerBC.hi);
-			m_memory->write(m_sp.pair--, m_registerBC.lo);
-			break;
-		case ld_16bit::PUSH_DE:
-			m_memory->write(m_sp.pair--, m_registerDE.hi);
-			m_memory->write(m_sp.pair--, m_registerDE.lo);
-			break;
-		case ld_16bit::PUSH_HL:
-			m_memory->write(m_sp.pair--, m_registerHL.hi);
-			m_memory->write(m_sp.pair--, m_registerHL.lo);
-			break;
-		case ld_16bit::PUSH_AF:
-			m_memory->write(m_sp.pair--, m_registerAF.hi);
-			m_memory->write(m_sp.pair--, m_registerAF.lo);
-			break;
-		default:
-			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
+	if(col(opcode) == 0x1){
+		auto& pair = m_reg16_map[row(opcode) - 12]();
+		pop(pair, row(opcode) == 0xf);
+	};
+
+	if(col(opcode) == 0x5){
+		auto pair = m_reg16_map[row(opcode) - 12]();
+		push(pair);
 	};
 	m_pc++;
 };
-
 
 void Gb_core::set_flag(Gb_core::flag f){ m_registerAF.lo |= (0x1 << (7 - f)); };
 void Gb_core::unset_flag(Gb_core::flag f){ m_registerAF.lo &= ~(0x1 << (7 - f)); };

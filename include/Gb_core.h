@@ -103,6 +103,9 @@ class Gb_core{
 		void x8_alu_inc(reg_order n);
 		void x8_alu_dec(reg_order n);
 
+		void pop(WORD& rr, bool af);
+		void push(const WORD& rr);
+
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
 		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;
@@ -132,6 +135,7 @@ class Gb_core{
 		std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
 		std::map<int, std::function<BYTE(void)>> m_reg_rmap;
 		std::map<int, std::function<BYTE(BYTE)>> m_reg_wmap;
+		std::map<int, std::function<WORD&(void)>> m_reg16_map;
 };
 
 enum class Gb_core::ld_8bit{
