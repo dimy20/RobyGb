@@ -634,3 +634,10 @@ void Gb_core::x8_alu_daa(){
 
 	m_pc++;
 };
+
+
+void Gb_core::x8_alu_cpl(){
+	m_registerAF.hi = ~m_registerAF.hi;
+	set_flag(flag::SUBS);
+	set_flag(flag::HALF_CARRY);
+};
