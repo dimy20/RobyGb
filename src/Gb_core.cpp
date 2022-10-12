@@ -641,3 +641,14 @@ void Gb_core::x8_alu_cpl(){
 	set_flag(flag::SUBS);
 	set_flag(flag::HALF_CARRY);
 };
+
+void Gb_core::x8_alu_ccf(){
+	if(get_flag(flag::CARRY)){
+		unset_flag(flag::CARRY);
+	}else{
+		set_flag(flag::CARRY);
+	}
+
+	unset_flag(flag::HALF_CARRY);
+	unset_flag(flag::SUBS);
+};
