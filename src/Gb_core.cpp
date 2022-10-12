@@ -632,4 +632,5 @@ void Gb_core::x8_alu_daa(){
 	if(A == 0) set_flag(flag::ZERO);
 	unset_flag(flag::HALF_CARRY);
 
+	m_pc++;
 };
