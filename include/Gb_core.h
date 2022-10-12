@@ -74,6 +74,9 @@ class Gb_core{
 		void build_opcode_matrix();
 		void build_registers_rmap();
 		void build_registers_wmap();
+		void build_alu_x80_xbf();
+		void build_alu_x04_x45();
+		void build_alu_inc_dec();
 
 		int _8bit_load(BYTE& rg, BYTE value);
 		void _8bit_ld_r1r2();
@@ -84,8 +87,6 @@ class Gb_core{
 		void _8bit_ld_xxA();
 		void _8bit_ld_Axx();
 		void _8bit_ld_ff00();
-
-		void core_alu();
 
 		void _16_bit_ld();
 		void _16bit_ldsp();
@@ -120,7 +121,6 @@ class Gb_core{
 
 		std::vector<ld_16bit> opcodes_16bitld_u16() const;
 		std::vector<ld_16bit> opcodes_16bitld_stack() const;
-		std::vector<alu> opcodes_alu() const;
 
 		constexpr BYTE row(BYTE opcode){ return (opcode & 0xf0) >> 4; };
 		constexpr BYTE col(BYTE opcode){ return (opcode & 0x0f); };
@@ -138,7 +138,8 @@ class Gb_core{
 		WORD m_pc = ENTRY_POINT;
 		Mem_mu * m_memory;
 
-		std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
+		std::function<void(void)> m_opcode_mat[16][16];
+		//std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
 		std::map<int, std::function<BYTE(void)>> m_reg_rmap;
 		std::map<int, std::function<BYTE(BYTE)>> m_reg_wmap;
 		std::map<int, std::function<WORD&(void)>> m_reg16_map;
@@ -195,17 +196,4 @@ enum class Gb_core::alu{
 
 enum class Gb_core::i_control{
 	JMP_NN = 0xc3
-};
-
-struct Gb_instruction{
-	typedef std::variant<Gb_core::ld_8bit,
-						 Gb_core::i_control,
-						 Gb_core::ld_16bit,
-						 Gb_core::alu> opcode_t;
-
-	Gb_instruction(opcode_t op, void(Gb_core::* f)(void), int c) : opcode(op), fn(f), cycles(c){};
-	public:
-		opcode_t opcode;
-		void (Gb_core::* fn)(void);
-		int cycles;
 };

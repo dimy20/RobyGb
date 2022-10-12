@@ -5,98 +5,137 @@
 Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {
 }
 
-void Gb_core::build_opcode_matrix(){
-
-	// sub grid : 0x40 - 0x7f
-	for(int row = 4; row <= 7; row++){
-		for(int col = 0; col < 16; col++){
-			BYTE opcode = (row << 4) | col;
-			auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
-														&Gb_core::_8bit_ld_r1r2, 8);
-			m_opcode_mat[row][col] = ptr;
-		}
-		std::cout << std::endl;
-	}
-
-	for(auto opcode : opcodes_8bitld_u8()){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
-													&Gb_core::_8bit_ldu8, 8);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+void Gb_core::build_alu_x80_xbf(){
+	for(int j = 0; j <= 7; j++){
+		m_opcode_mat[8][j] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+			x8_alu_add(r2, false);
+		};
 	};
 
-	for(auto opcode : opcodes_8bitld_XX_R()){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
-													&Gb_core::_8bit_ld_xxA, 8);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	for(int j = 8; j <= 0xf; j++){
+		m_opcode_mat[8][j] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+			x8_alu_add(r2, true);
+		};
 	};
 
-	for(auto opcode : opcodes_8bitld_Axx()){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
-													&Gb_core::_8bit_ld_Axx, 8);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	for(int j = 0; j <= 7; j++){
+		m_opcode_mat[9][j] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+			x8_alu_sub(r2, false);
+		};
 	};
 
-	for(auto opcode : opcodes_16bitld_u16()){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_16bit>(opcode),
-													&Gb_core::_16_bit_ld, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	for(int j = 8; j <= 0xf; j++){
+		m_opcode_mat[9][j] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+			x8_alu_sub(r2, true);
+		};
 	};
 
-	for(auto opcode : opcodes_ff00()){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_8bit>(opcode),
-													&Gb_core::_8bit_ld_ff00, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	for(int j = 0; j <= 7; j++){
+		m_opcode_mat[0xa][j] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+			x8_alu_and(r2);
+		};
 	};
 
-	for(auto opcode : opcodes_16bitld_stack()){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<ld_16bit>(opcode),
-													&Gb_core::_16bit_ldsp, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
-	}
-
-	for(auto opcode : opcodes_alu()){
-		std::shared_ptr<Gb_instruction> ptr;
-		ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
-	}
-
-	for(int opcode = 0xb0; opcode <= 0xb7; opcode++){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	for(int j = 8; j <= 0xf; j++){
+		m_opcode_mat[0xa][j] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+			x8_alu_xor(r2);
+		};
 	};
 
-	for(int opcode = 0xb8; opcode <= 0xbf; opcode++){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	for(int j = 0; j <= 7; j++){
+		m_opcode_mat[0xb][j] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+			x8_alu_or(r2);
+		};
 	};
 
+	for(int j = 8; j <= 0xf; j++){
+		m_opcode_mat[0xb][j] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+			x8_alu_cp(r2);
+		};
+	};
+};
+
+void Gb_core::build_alu_inc_dec(){
 	for(int opcode = 0x04; opcode <= 0x34; opcode += 0x10){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			x8_alu_inc(static_cast<reg_order>((row(opcode) * 2)));
+		};
 	}
 
 	for(int opcode = 0x0c; opcode <= 0x3c; opcode += 0x10){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			x8_alu_inc(static_cast<reg_order>((row(opcode) * 2) + 1));
+		};
 	}
 
 	for(int opcode = 0x05; opcode <= 0x35; opcode += 0x10){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
-	};
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			x8_alu_dec(static_cast<reg_order>((row(opcode) * 2)));
+		};
+	}
 
 	for(int opcode = 0x0d; opcode <= 0x3d; opcode += 0x10){
-		auto ptr = std::make_shared<Gb_instruction>(static_cast<alu>(opcode),&Gb_core::core_alu, 12);
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
+			auto opcode = m_memory->read(m_pc);
+			x8_alu_dec(static_cast<reg_order>((row(opcode) * 2) + 1));
+		};
+	}
+};
+
+void Gb_core::build_opcode_matrix(){
+	// sub grid : 0x40 - 0x7f
+	for(int row = 4; row <= 7; row++){
+		for(int col = 0; col < 16; col++){
+			m_opcode_mat[row][col] = [this](){ _8bit_ld_r1r2(); };
+		}
+	}
+
+	for(auto opcode : opcodes_8bitld_u8()){
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _8bit_ldu8(); };
 	};
 
+	for(auto opcode : opcodes_8bitld_XX_R()){
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _8bit_ld_xxA(); };
+	};
 
-	auto daa_ptr = std::make_shared<Gb_instruction>(static_cast<alu>(0x27),&Gb_core::x8_alu_daa, 12);
-	m_opcode_mat[ROW(0x27)][COL(0x27)] = daa_ptr;
+	for(auto opcode : opcodes_8bitld_Axx()){
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this]() { _8bit_ld_Axx(); };
+	};
 
-	auto ptr = std::make_shared<Gb_instruction>(i_control::JMP_NN, &Gb_core::jmp_nn, 16);
+	for(auto opcode : opcodes_16bitld_u16()){
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _16_bit_ld(); };
+	};
+
+	for(auto opcode : opcodes_ff00()){
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _8bit_ld_ff00(); };
+	};
+
+	for(auto opcode : opcodes_16bitld_stack()){
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _16bit_ldsp(); };
+	}
+
+	m_opcode_mat[ROW(0x27)][COL(0x27)] = [this](){ x8_alu_daa(); };
 	auto opcode = static_cast<BYTE>(i_control::JMP_NN);
-	m_opcode_mat[ROW(opcode)][COL(opcode)] = ptr;
+	m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ jmp_nn(); };
 };
 
 void Gb_core::build_registers_rmap(){
@@ -130,6 +169,8 @@ void Gb_core::build_registers_wmap(){
 
 void Gb_core::init(){
 	build_opcode_matrix();
+	build_alu_x80_xbf();
+	build_alu_inc_dec();
 	m_sp.pair = SP_INIT_ADDR;
 	m_registerBC.pair = 0;
 	m_registerAF.pair = 0;
@@ -145,9 +186,9 @@ void Gb_core::init(){
 void Gb_core::emulate_cycles(int n){
 	for(int i = 0; i < n; i++){
 		auto opcode = m_memory->read(m_pc);
-		auto i_ptr = m_opcode_mat[ROW(opcode)][COL(opcode)];
-		if(i_ptr.get() != nullptr){
-			(this->*i_ptr->fn)(); // run instruction handler
+		auto opcode_handler = m_opcode_mat[ROW(opcode)][COL(opcode)];
+		if(opcode_handler != nullptr){
+			opcode_handler();
 		}else{
 			std::cerr << "Unknown opcode : " << std::hex << (int)opcode << std::endl;
 		}
@@ -374,17 +415,6 @@ std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_stack() const{
 			ld_16bit::POP_HL, ld_16bit::PUSH_HL, ld_16bit::POP_AF, ld_16bit::PUSH_AF};
 };
 
-std::vector<Gb_core::alu> Gb_core::opcodes_alu() const{
-	return {alu::ADD_A_B, alu::ADD_A_C, alu::ADD_A_D, alu::ADD_A_E, alu::ADD_A_H,
-			alu::ADD_A_L, alu::ADD_A_HL_, alu::ADD_A_A, alu::ADC_A_B, alu::ADC_A_C,
-			alu::ADC_A_D, alu::ADC_A_E, alu::ADC_A_H, alu::ADC_A_L, alu::ADC_A_HL_,
-			alu::ADC_A_A, alu::SUB_A_B, alu::SUB_A_C, alu::SUB_A_D, alu::SUB_A_E,
-			alu::SUB_A_H, alu::SUB_A_L, alu::SUB_A_HL_, alu::SUB_A_A, alu::SBC_A_B,
-			alu::SBC_A_C, alu::SBC_A_D, alu::SBC_A_E, alu::SBC_A_H, alu::SBC_A_L,
-			alu::SBC_A_HL_, alu::SBC_A_A, alu::AND_A_B, alu::AND_A_C, alu::AND_A_D,
-			alu::AND_A_E, alu::AND_A_H, alu::AND_A_L, alu::AND_A_HL_, alu::AND_A_A};
-};
-
 void Gb_core::_8bit_ld_ff00(){
 	auto opcode = m_memory->read(m_pc);
 	WORD offset;
@@ -474,6 +504,7 @@ void Gb_core::x8_alu_add(BYTE r2, bool add_carry){
 		if(r1 + r2 == 0) set_flag(flag::ZERO);
 		r1 += r2;
 	};
+	m_pc++;
 };
 
 void Gb_core::x8_alu_sub(BYTE r2, bool sub_carry){
@@ -504,6 +535,7 @@ void Gb_core::x8_alu_sub(BYTE r2, bool sub_carry){
 			set_flag(flag::CARRY);
 		r1 -= r2;
 	}
+	m_pc++;
 };
 
 void Gb_core::x8_alu_and(BYTE r2){
@@ -512,6 +544,7 @@ void Gb_core::x8_alu_and(BYTE r2){
 	set_flag(flag::HALF_CARRY);
 	unset_flag(flag::HALF_CARRY);
 	unset_flag(flag::SUBS);
+	m_pc++;
 };
 
 void Gb_core::x8_alu_xor(BYTE r2){
@@ -520,6 +553,7 @@ void Gb_core::x8_alu_xor(BYTE r2){
 	unset_flag(flag::HALF_CARRY);
 	unset_flag(flag::HALF_CARRY);
 	unset_flag(flag::SUBS);
+	m_pc++;
 };
 
 void Gb_core::x8_alu_or(BYTE r2){
@@ -528,6 +562,7 @@ void Gb_core::x8_alu_or(BYTE r2){
 	unset_flag(flag::HALF_CARRY);
 	unset_flag(flag::HALF_CARRY);
 	unset_flag(flag::SUBS);
+	m_pc++;
 };
 
 
@@ -538,6 +573,7 @@ void Gb_core::x8_alu_cp(BYTE r2){
 	if(a == r2) set_flag(flag::ZERO);
 	if((a & 0x0f) - (r2 & 0x0f) < 0) set_flag(flag::HALF_CARRY);
 	if(a < r2) set_flag(flag::CARRY);
+	m_pc++;
 };
 
 void Gb_core::x8_alu_inc(reg_order n){
@@ -546,6 +582,7 @@ void Gb_core::x8_alu_inc(reg_order n){
 	if(res == 0) set_flag(flag::ZERO);
 	unset_flag(flag::SUBS);
 	if((res & 0x0f) == 0x00) set_flag(flag::HALF_CARRY);
+	m_pc++;
 };
 
 void Gb_core::x8_alu_dec(reg_order n){
@@ -554,60 +591,8 @@ void Gb_core::x8_alu_dec(reg_order n){
 	if(res == 0) set_flag(flag::ZERO);
 	set_flag(flag::SUBS);
 	if((res & 0x0f) == 0x0f) set_flag(flag::HALF_CARRY);
-};
-
-void Gb_core::core_alu(){
-
-	auto opcode = m_memory->read(m_pc);
-	bool carry = (opcode & 0x0f) > 7 ? true : false;
-
-
-	if((alu)opcode >= alu::ADD_A_B && (alu)opcode <= alu::ADC_A_A){
-		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-		x8_alu_add(r2, carry);
-	};
-
-	if((alu)opcode >= alu::SUB_A_B && (alu)opcode <= alu::SBC_A_A){
-		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-		x8_alu_sub(r2, carry);
-	};
-
-	if((alu)opcode >= alu::AND_A_B && (alu)opcode <= alu::AND_A_A){
-		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-		x8_alu_and(r2);
-	};
-
-	if((alu)opcode >= alu::XOR_A_B && (alu)opcode <= alu::XOR_A_A){
-		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-		x8_alu_xor(r2);
-	};
-
-	if((alu)opcode >= alu::OR_START && (alu)opcode <= alu::OR_END){
-		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-		x8_alu_or(r2);
-	};
-
-	if((alu)opcode >= alu::CP_START && (alu)opcode <= alu::CP_END){
-		auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
-		x8_alu_cp(r2);
-	};
-
-	if(row(opcode) >= 0 && row(opcode) <= 3){
-		int reg_num;
-		if(col(opcode) == 4 || col(opcode) == 0xc){
-			if(col(opcode) == 4) reg_num = row(opcode) * 2;
-			else reg_num = (row(opcode) * 2) + 1;
-			x8_alu_inc(static_cast<reg_order>(reg_num));
-		}else if(col(opcode) == 5 || col(opcode) == 0xd){
-			if(col(opcode) == 5) reg_num = row(opcode) * 2;
-			else reg_num = (row(opcode) * 2) + 1;
-			x8_alu_dec(static_cast<reg_order>(reg_num));
-		}
-	}
-
 	m_pc++;
 };
-
 
 void Gb_core::x8_alu_daa(){
 	BYTE& A = m_registerAF.hi;
@@ -634,7 +619,6 @@ void Gb_core::x8_alu_daa(){
 
 	m_pc++;
 };
-
 
 void Gb_core::x8_alu_cpl(){
 	m_registerAF.hi = ~m_registerAF.hi;
