@@ -7,6 +7,7 @@ Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {
 
 void Gb_core::build_control(){
 	// returns
+	m_opcode_mat[0x0][0x0] = [this](){ m_pc++; };
 	m_opcode_mat[0xc][0x9] = [this](){ ctrl_return(); };
 	m_opcode_mat[0xc][0x0] = [this](){ if(!get_flag(flag::ZERO)) ctrl_return(); };
 	m_opcode_mat[0xc][0x8] = [this](){ if(get_flag(flag::ZERO)) ctrl_return(); };
@@ -748,9 +749,8 @@ void Gb_core::ctrl_call(){
 };
 
 void Gb_core::ctrl_jr(){
-	m_pc++;
-	BYTE offset = m_memory->read(m_pc++);
-	m_pc += offset;
+	auto offset = static_cast<SIGNED_BYTE>(m_memory->read(m_pc + 1));
+	m_pc += offset + 2;
 };
 
 void Gb_core::ctrl_rst(const WORD offset){
