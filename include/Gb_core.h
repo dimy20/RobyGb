@@ -112,6 +112,7 @@ class Gb_core{
 		void x16_alu_inc(WORD& rr);
 		void x16_alu_dec(WORD& rr);
 		void x16_alu_add(const WORD& rr);
+		void x16_alu_addsp();
 
 		void pop(WORD& rr, bool af);
 		void push(const WORD& rr);

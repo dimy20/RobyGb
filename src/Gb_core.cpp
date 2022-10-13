@@ -60,6 +60,9 @@ void Gb_core::build_control(){
 	m_opcode_mat[0x1][0x9] = [this]() { x16_alu_add(m_registerDE.pair); };
 	m_opcode_mat[0x2][0x9] = [this]() { x16_alu_add(m_registerHL.pair); };
 	m_opcode_mat[0x3][0x9] = [this]() { x16_alu_add(m_sp.pair); };
+
+	m_opcode_mat[0xe][0x8] = [this]() { x16_alu_addsp(); };
+	m_opcode_mat[0xf][0x8] = [this]() { x16_alu_addsp(); m_registerHL.pair = m_sp.pair; m_pc++; };
 };
 
 
@@ -765,8 +768,26 @@ void Gb_core::x16_alu_add(const WORD& rr){
 
 	if((static_cast<unsigned int>(hl) + static_cast<unsigned int>(rr)) & 0x10000)
 		set_flag(flag::CARRY);
+
 	if(((hl & 0xfff) + (rr & 0xfff)) & 0x1000)
 		set_flag(flag::HALF_CARRY);
 
 	m_pc++;
+};
+
+void Gb_core::x16_alu_addsp(){
+	SIGNED_BYTE value = static_cast<SIGNED_BYTE>(m_memory->read(m_pc + 1));
+
+	unset_flag(flag::ZERO);
+	unset_flag(flag::SUBS);
+	auto& sp = m_sp.pair;
+
+	if(((sp & 0xf) + (value & 0xf)) & 0x10)
+		set_flag(flag::HALF_CARRY);
+
+	if(((sp & 0xff) + (value & 0xff)) & 0x100)
+		set_flag(flag::CARRY);
+
+	sp += value;
+	m_pc += 2;
 };
