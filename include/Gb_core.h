@@ -116,6 +116,7 @@ class Gb_core{
 		void ctrl_return();
 		void ctrl_call();
 		void ctrl_jr();
+		void ctrl_rst(const WORD offset);
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
 		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;

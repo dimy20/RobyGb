@@ -6,34 +6,44 @@ Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {
 }
 
 void Gb_core::build_control(){
+	// returns
 	m_opcode_mat[0xc][0x9] = [this](){ ctrl_return(); };
 	m_opcode_mat[0xc][0x0] = [this](){ if(!get_flag(flag::ZERO)) ctrl_return(); };
 	m_opcode_mat[0xc][0x8] = [this](){ if(get_flag(flag::ZERO)) ctrl_return(); };
 	m_opcode_mat[0xd][0x0] = [this](){ if(!get_flag(flag::CARRY)) ctrl_return(); };
 	m_opcode_mat[0xd][0x4] = [this](){ if(get_flag(flag::CARRY)) ctrl_return(); };
-
+	// calls
 	m_opcode_mat[0xc][0xd] = [this](){ ctrl_call(); };
 	m_opcode_mat[0xc][0xc] = [this](){ if(get_flag(flag::ZERO)) ctrl_call(); };
 	m_opcode_mat[0xc][0x4] = [this](){ if(!get_flag(flag::ZERO)) ctrl_call(); };
 	m_opcode_mat[0xd][0x4] = [this](){ if(!get_flag(flag::CARRY)) ctrl_call(); };
 	m_opcode_mat[0xd][0xc] = [this](){ if(get_flag(flag::CARRY)) ctrl_call(); };
-
+	// jumps
 	m_opcode_mat[0xc][0x3] = [this](){ jmp_nn(); };
 	m_opcode_mat[0xc][0x2] = [this](){ if(!get_flag(flag::ZERO)) jmp_nn(); };
 	m_opcode_mat[0xc][0xa] = [this](){ if(get_flag(flag::ZERO)) jmp_nn(); };
 	m_opcode_mat[0xd][0xa] = [this](){ if(get_flag(flag::CARRY)) jmp_nn(); };
 	m_opcode_mat[0xd][0x2] = [this](){ if(!get_flag(flag::CARRY)) jmp_nn(); };
 	m_opcode_mat[0xe][0x9] = [this](){ m_pc = m_memory->read(m_registerHL.pair); };
-
+	// jp offset
 	m_opcode_mat[0x1][0x8] = [this](){ ctrl_jr(); };
 	m_opcode_mat[0x2][0x8] = [this](){ if(get_flag(flag::ZERO)) ctrl_jr(); };
 	m_opcode_mat[0x3][0x8] = [this](){ if(get_flag(flag::CARRY)) ctrl_jr(); };
 	m_opcode_mat[0x2][0x0] = [this](){ if(!get_flag(flag::ZERO)) ctrl_jr(); };
 	m_opcode_mat[0x3][0x0] = [this](){ if(!get_flag(flag::CARRY)) ctrl_jr(); };
-
+	// ime
 	m_opcode_mat[0xf][0x3] = [this](){ m_interrupts_enabled = false; m_pc++; };
 	m_opcode_mat[0xf][0xb] = [this](){ m_interrupts_enabled = true; m_pc++; };
 	m_opcode_mat[0xd][0x9] = [this](){ m_interrupts_enabled = true; ctrl_return(); };
+	//rst
+	m_opcode_mat[0xc][0x7] = [this]() { ctrl_rst(0x00); };
+	m_opcode_mat[0xd][0x7] = [this]() { ctrl_rst(0x10); };
+	m_opcode_mat[0xe][0x7] = [this]() { ctrl_rst(0x20); };
+	m_opcode_mat[0xf][0x7] = [this]() { ctrl_rst(0x30); };
+	m_opcode_mat[0xc][0xf] = [this]() { ctrl_rst(0x08); };
+	m_opcode_mat[0xd][0xf] = [this]() { ctrl_rst(0x18); };
+	m_opcode_mat[0xe][0xf] = [this]() { ctrl_rst(0x28); };
+	m_opcode_mat[0xf][0xf] = [this]() { ctrl_rst(0x38); };
 };
 
 void Gb_core::build_alu_x80_xbf(){
@@ -721,4 +731,9 @@ void Gb_core::ctrl_jr(){
 	m_pc++;
 	BYTE offset = m_memory->read(m_pc++);
 	m_pc += offset;
+};
+
+void Gb_core::ctrl_rst(const WORD offset){
+	push(m_pc);
+	m_pc = offset;
 };
