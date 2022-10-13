@@ -77,6 +77,7 @@ class Gb_core{
 		void build_alu_x80_xbf();
 		void build_alu_x04_x45();
 		void build_alu_inc_dec();
+		void build_control();
 
 		int _8bit_load(BYTE& rg, BYTE value);
 		void _8bit_ld_r1r2();
@@ -97,6 +98,7 @@ class Gb_core{
 		void unset_flag(flag f);
 		BYTE get_flag(flag f);
 
+		// alu handlers
 		void x8_alu_xor(BYTE r2);
 		void x8_alu_add(BYTE r2);
 		void x8_alu_adc(BYTE r2);
@@ -115,6 +117,10 @@ class Gb_core{
 		void pop(WORD& rr, bool af);
 		void push(const WORD& rr);
 
+		// control handlers
+		void ctrl_return();
+		void ctrl_call();
+		void ctrl_jr();
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
 		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;

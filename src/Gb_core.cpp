@@ -5,6 +5,28 @@
 Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {
 }
 
+void Gb_core::build_control(){
+	m_opcode_mat[0xc][0x9] = [this](){ ctrl_return(); };
+	m_opcode_mat[0xc][0xd] = [this](){ ctrl_call(); };
+	m_opcode_mat[0xc][0xc] = [this](){ if(get_flag(flag::ZERO)) ctrl_call(); };
+	m_opcode_mat[0xc][0x4] = [this](){ if(!get_flag(flag::ZERO)) ctrl_call(); };
+	m_opcode_mat[0xd][0x4] = [this](){ if(!get_flag(flag::CARRY)) ctrl_call(); };
+	m_opcode_mat[0xd][0xc] = [this](){ if(get_flag(flag::CARRY)) ctrl_call(); };
+
+	m_opcode_mat[0xc][0x3] = [this](){ jmp_nn(); };
+	m_opcode_mat[0xc][0x2] = [this](){ if(!get_flag(flag::ZERO)) jmp_nn(); };
+	m_opcode_mat[0xc][0xa] = [this](){ if(get_flag(flag::ZERO)) jmp_nn(); };
+	m_opcode_mat[0xd][0xa] = [this](){ if(get_flag(flag::CARRY)) jmp_nn(); };
+	m_opcode_mat[0xd][0x2] = [this](){ if(!get_flag(flag::CARRY)) jmp_nn(); };
+	m_opcode_mat[0xe][0x9] = [this](){ m_pc = m_memory->read(m_registerHL.pair); };
+
+	m_opcode_mat[0x1][0x8] = [this](){ ctrl_jr(); };
+	m_opcode_mat[0x2][0x8] = [this](){ if(get_flag(flag::ZERO)) ctrl_jr(); };
+	m_opcode_mat[0x3][0x8] = [this](){ if(get_flag(flag::CARRY)) ctrl_jr(); };
+	m_opcode_mat[0x2][0x0] = [this](){ if(!get_flag(flag::ZERO)) ctrl_jr(); };
+	m_opcode_mat[0x3][0x0] = [this](){ if(!get_flag(flag::CARRY)) ctrl_jr(); };
+};
+
 void Gb_core::build_alu_x80_xbf(){
 	for(int j = 0; j <= 7; j++){
 		m_opcode_mat[8][j] = [this](){
@@ -171,6 +193,7 @@ void Gb_core::init(){
 	build_opcode_matrix();
 	build_alu_x80_xbf();
 	build_alu_inc_dec();
+	build_control();
 	m_sp.pair = SP_INIT_ADDR;
 	m_registerBC.pair = 0;
 	m_registerAF.pair = 0;
@@ -651,4 +674,27 @@ void Gb_core::x8_alu_scf(){
 	set_flag(flag::CARRY);
 	unset_flag(flag::HALF_CARRY);
 	unset_flag(flag::SUBS);
+};
+
+void Gb_core::ctrl_return(){
+	WORD addr;
+	pop(addr, false);
+	m_pc = addr;
+};
+
+void Gb_core::ctrl_call(){
+	m_pc++;
+	BYTE hi = m_memory->read(m_pc++);
+	BYTE low = m_memory->read(m_pc++);
+
+	push(m_pc); // return addr
+
+	WORD jmp_addr = hi | (low << 8);
+	m_pc = jmp_addr;
+};
+
+void Gb_core::ctrl_jr(){
+	m_pc++;
+	BYTE offset = m_memory->read(m_pc++);
+	m_pc += offset;
 };
