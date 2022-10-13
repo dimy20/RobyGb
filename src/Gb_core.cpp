@@ -91,6 +91,8 @@ void Gb_core::build_alu_x80_xbf(){
 			x8_alu_cp(r2);
 		};
 	};
+
+
 };
 
 void Gb_core::build_alu_inc_dec(){
@@ -155,9 +157,22 @@ void Gb_core::build_opcode_matrix(){
 		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _16bit_ldsp(); };
 	}
 
-	m_opcode_mat[ROW(0x27)][COL(0x27)] = [this](){ x8_alu_daa(); };
-	auto opcode = static_cast<BYTE>(i_control::JMP_NN);
-	m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ jmp_nn(); };
+	// alu
+	m_opcode_mat[0xc][0x6] = [this](){ x8_alu_add(m_memory->read(m_pc++)); };
+	m_opcode_mat[0xd][0x6] = [this](){ x8_alu_sub(m_memory->read(m_pc++)); };
+	m_opcode_mat[0xe][0x6] = [this](){ x8_alu_and(m_memory->read(m_pc++)); };
+	m_opcode_mat[0xf][0x6] = [this](){ x8_alu_or(m_memory->read(m_pc++)); };
+
+	m_opcode_mat[0xc][0xe] = [this](){ x8_alu_adc(m_memory->read(m_pc++)); };
+	m_opcode_mat[0xd][0xe] = [this](){ x8_alu_sbc(m_memory->read(m_pc++)); };
+	m_opcode_mat[0xe][0xe] = [this](){ x8_alu_xor(m_memory->read(m_pc++)); };
+	m_opcode_mat[0xf][0xe] = [this](){ x8_alu_cp(m_memory->read(m_pc++)); };
+
+	m_opcode_mat[0x2][0x7] = [this](){ x8_alu_daa(); };
+	m_opcode_mat[0x3][0x7] = [this](){ x8_alu_scf(); };
+	m_opcode_mat[0x2][0xf] = [this](){ x8_alu_cpl(); };
+	m_opcode_mat[0x3][0xf] = [this](){ x8_alu_ccf(); };
+
 };
 
 void Gb_core::build_registers_rmap(){
