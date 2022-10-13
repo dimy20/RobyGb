@@ -109,6 +109,10 @@ class Gb_core{
 		void x8_alu_ccf(); 
 		void x8_alu_scf(); 
 
+		void x16_alu_inc(WORD& rr);
+		void x16_alu_dec(WORD& rr);
+		void x16_alu_add(const WORD& rr);
+
 		void pop(WORD& rr, bool af);
 		void push(const WORD& rr);
 

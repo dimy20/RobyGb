@@ -44,7 +44,24 @@ void Gb_core::build_control(){
 	m_opcode_mat[0xd][0xf] = [this]() { ctrl_rst(0x18); };
 	m_opcode_mat[0xe][0xf] = [this]() { ctrl_rst(0x28); };
 	m_opcode_mat[0xf][0xf] = [this]() { ctrl_rst(0x38); };
+
+	// x16 alu arithmetic mappings
+	m_opcode_mat[0x0][0x3] = [this]() { x16_alu_inc(m_registerBC.pair); };
+	m_opcode_mat[0x1][0x3] = [this]() { x16_alu_inc(m_registerDE.pair); };
+	m_opcode_mat[0x2][0x3] = [this]() { x16_alu_inc(m_registerHL.pair); };
+	m_opcode_mat[0x3][0x3] = [this]() { x16_alu_inc(m_sp.pair); };
+
+	m_opcode_mat[0x0][0xb] = [this]() { x16_alu_dec(m_registerBC.pair); };
+	m_opcode_mat[0x1][0xb] = [this]() { x16_alu_dec(m_registerDE.pair); };
+	m_opcode_mat[0x2][0xb] = [this]() { x16_alu_dec(m_registerHL.pair); };
+	m_opcode_mat[0x3][0xb] = [this]() { x16_alu_dec(m_sp.pair); };
+
+	m_opcode_mat[0x0][0x9] = [this]() { x16_alu_add(m_registerBC.pair); };
+	m_opcode_mat[0x1][0x9] = [this]() { x16_alu_add(m_registerDE.pair); };
+	m_opcode_mat[0x2][0x9] = [this]() { x16_alu_add(m_registerHL.pair); };
+	m_opcode_mat[0x3][0x9] = [this]() { x16_alu_add(m_sp.pair); };
 };
+
 
 void Gb_core::build_alu_x80_xbf(){
 	for(int j = 0; j <= 7; j++){
@@ -736,4 +753,20 @@ void Gb_core::ctrl_jr(){
 void Gb_core::ctrl_rst(const WORD offset){
 	push(m_pc);
 	m_pc = offset;
+};
+
+void Gb_core::x16_alu_inc(WORD& rr){ rr++; m_pc++;};
+void Gb_core::x16_alu_dec(WORD& rr){ rr++; m_pc++;};
+
+void Gb_core::x16_alu_add(const WORD& rr){
+	unset_flag(flag::SUBS);
+	auto& hl = m_registerHL.pair;
+	hl += rr;
+
+	if((static_cast<unsigned int>(hl) + static_cast<unsigned int>(rr)) & 0x10000)
+		set_flag(flag::CARRY);
+	if(((hl & 0xfff) + (rr & 0xfff)) & 0x1000)
+		set_flag(flag::HALF_CARRY);
+
+	m_pc++;
 };
