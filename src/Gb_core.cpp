@@ -7,6 +7,11 @@ Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {
 
 void Gb_core::build_control(){
 	m_opcode_mat[0xc][0x9] = [this](){ ctrl_return(); };
+	m_opcode_mat[0xc][0x0] = [this](){ if(!get_flag(flag::ZERO)) ctrl_return(); };
+	m_opcode_mat[0xc][0x8] = [this](){ if(get_flag(flag::ZERO)) ctrl_return(); };
+	m_opcode_mat[0xd][0x0] = [this](){ if(!get_flag(flag::CARRY)) ctrl_return(); };
+	m_opcode_mat[0xd][0x4] = [this](){ if(get_flag(flag::CARRY)) ctrl_return(); };
+
 	m_opcode_mat[0xc][0xd] = [this](){ ctrl_call(); };
 	m_opcode_mat[0xc][0xc] = [this](){ if(get_flag(flag::ZERO)) ctrl_call(); };
 	m_opcode_mat[0xc][0x4] = [this](){ if(!get_flag(flag::ZERO)) ctrl_call(); };
@@ -25,6 +30,10 @@ void Gb_core::build_control(){
 	m_opcode_mat[0x3][0x8] = [this](){ if(get_flag(flag::CARRY)) ctrl_jr(); };
 	m_opcode_mat[0x2][0x0] = [this](){ if(!get_flag(flag::ZERO)) ctrl_jr(); };
 	m_opcode_mat[0x3][0x0] = [this](){ if(!get_flag(flag::CARRY)) ctrl_jr(); };
+
+	m_opcode_mat[0xf][0x3] = [this](){ m_interrupts_enabled = false; m_pc++; };
+	m_opcode_mat[0xf][0xb] = [this](){ m_interrupts_enabled = true; m_pc++; };
+	m_opcode_mat[0xd][0x9] = [this](){ m_interrupts_enabled = true; ctrl_return(); };
 };
 
 void Gb_core::build_alu_x80_xbf(){

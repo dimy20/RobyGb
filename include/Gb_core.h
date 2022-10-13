@@ -15,12 +15,7 @@
 #define STACK_SIZE 16
 #define ENTRY_POINT 0x0100 // after displaying the nintendo logo, boot rom jumps here.
 #define SP_INIT_ADDR 0xfffe
-
-/* flags */
-#define ZERO_FLAG 7 
-#define SUBSTRACT_FLAG 6
-#define HALF_CARRY_FLAG 5
-#define CARRY_FLAG 4
+#define IE_ADDR 0xffff
 
 #define ROW(opcode) (static_cast<BYTE>(opcode) & 0xf0) >> 4
 #define COL(opcode) (static_cast<BYTE>(opcode) & 0x0f)
@@ -146,6 +141,7 @@ class Gb_core{
 		WORD m_pc = ENTRY_POINT;
 		Mem_mu * m_memory;
 
+		bool m_interrupts_enabled = true;
 		std::function<void(void)> m_opcode_mat[16][16];
 		//std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
 		std::map<int, std::function<BYTE(void)>> m_reg_rmap;
