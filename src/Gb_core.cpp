@@ -548,108 +548,101 @@ void Gb_core::_16bit_ldsp(){
 	m_pc++;
 };
 
-void Gb_core::set_flag(Gb_core::flag f){ m_registerAF.lo |= (0x1 << (7 - f)); };
+void Gb_core::set_flag(Gb_core::flag f, bool set){
+	if(set){
+		m_registerAF.lo |= (0x1 << f);
+	}else{
+		m_registerAF.lo &= ~(0x1 << f);
+	};
+};
 
-void Gb_core::unset_flag(Gb_core::flag f){ m_registerAF.lo &= ~(0x1 << (7 - f)); };
-
-BYTE Gb_core::get_flag(flag f){ return ((m_registerAF.lo >> (7 - f)) & 0x1); };
+BYTE Gb_core::get_flag(flag f){ return ((m_registerAF.lo >> f) & 0x1); };
 
 // ---- ----
 void Gb_core::x8_alu_add(BYTE r2){
 	BYTE& r1 = m_registerAF.hi;
 
-	unset_flag(flag::HALF_CARRY);
-	if(((r1 & 0x0f) + (r2 + 0x0f)) & 0x10) set_flag(flag::HALF_CARRY);
+	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 + 0x0f)) & 0x10));
 
-	unset_flag(flag::CARRY);
-	if(static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff) set_flag(flag::CARRY);
+	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff));
 
-	unset_flag(flag::ZERO);
-	if(r1 + r2 == 0) set_flag(flag::ZERO);
+	set_flag(flag::ZERO, r1 + r2 == 0);
+
 	r1 += r2;
-
 	m_pc++;
 };
 
 void Gb_core::x8_alu_adc(BYTE r2){
 	BYTE& r1 = m_registerAF.hi;
 
-	BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
-	// overflow?
-	unset_flag(HALF_CARRY);
-	if(((r1 & 0x0f) + (r2 + 0x0f) + c_flag) & 0x10) set_flag(flag::HALF_CARRY);
+	BYTE c_flag = get_flag(flag::CARRY);
+
+	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 + 0x0f) + c_flag) & 0x10));
 		
-	unset_flag(flag::CARRY);
-	if(static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff)
-		set_flag(flag::CARRY);
+	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff));
 
+	set_flag(flag::ZERO, r1 + r2 + c_flag == 0);
 
-	if(r1 + r2 + c_flag == 0) set_flag(flag::ZERO);
 	r1 += r2 + c_flag;
-
 	m_pc++;
 };
 
 void Gb_core::x8_alu_sub(BYTE r2){
 	BYTE& r1 = m_registerAF.hi;
-	set_flag(flag::SUBS);
+	set_flag(flag::SUBS, true);
 
-	unset_flag(flag::ZERO);
-	if(r1 - r2 == 0) set_flag(flag::ZERO);
+	set_flag(flag::ZERO, r1 - r2 == 0);
 
-	unset_flag(flag::HALF_CARRY);
-	if(static_cast<int>(r1 & 0x0f) < static_cast<int>(r2 & 0x0f))
-		set_flag(flag::HALF_CARRY);
-	// no borrow
+	set_flag(flag::HALF_CARRY, (static_cast<int>(r1 & 0x0f) < static_cast<int>(r2 & 0x0f)));
 
-	if(r1 < r2)
-		set_flag(flag::CARRY);
+	set_flag(flag::CARRY, r1 < r2);
+
 	r1 -= r2;
 	m_pc++;
 };
 
 void Gb_core::x8_alu_sbc(BYTE r2){
 	BYTE& r1 = m_registerAF.hi;
-	set_flag(flag::SUBS);
+	set_flag(flag::SUBS, true);
 
-	BYTE c_flag = ((m_registerAF.lo >> (7 - flag::CARRY)) & 0x1);
-	unset_flag(flag::HALF_CARRY);
+	BYTE c_flag = get_flag(flag::CARRY);
+	set_flag(flag::CARRY, (static_cast<int>(r1 & 0x0f) < (static_cast<int>(r2 & 0x0f) + c_flag)));
 
-	if(static_cast<int>(r1 & 0x0f) < (static_cast<int>(r2 & 0x0f) + c_flag))
-		set_flag(flag::HALF_CARRY);
+	set_flag(flag::CARRY, r1 < (r2 + c_flag));
 
-	if(r1 < (r2 + c_flag))
-		set_flag(flag::CARRY);
-
-	unset_flag(flag::ZERO);
-	if(r1 - (r2 + c_flag) == 0) set_flag(flag::ZERO);
+	set_flag(flag::ZERO, (r1 - (r2 + c_flag) == 0));
 	m_pc++;
 };
 
 void Gb_core::x8_alu_and(BYTE r2){
 	m_registerAF.hi &= r2;
-	if(m_registerAF.hi == 0) set_flag(flag::ZERO);
-	set_flag(flag::HALF_CARRY);
-	unset_flag(flag::HALF_CARRY);
-	unset_flag(flag::SUBS);
+
+	set_flag(flag::ZERO, m_registerAF.hi == 0);
+	set_flag(flag::HALF_CARRY, true);
+	set_flag(flag::CARRY, false);
+	set_flag(flag::SUBS, false);
+
 	m_pc++;
 };
 
 void Gb_core::x8_alu_xor(BYTE r2){
 	m_registerAF.hi ^= r2;
-	if(m_registerAF.hi == 0) set_flag(flag::ZERO);
-	unset_flag(flag::HALF_CARRY);
-	unset_flag(flag::HALF_CARRY);
-	unset_flag(flag::SUBS);
+	set_flag(flag::ZERO, m_registerAF.hi == 0);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::CARRY, false);
+	set_flag(flag::SUBS, false);
+
 	m_pc++;
 };
 
 void Gb_core::x8_alu_or(BYTE r2){
 	m_registerAF.hi |= r2;
-	if(m_registerAF.hi == 0) set_flag(flag::ZERO);
-	unset_flag(flag::HALF_CARRY);
-	unset_flag(flag::HALF_CARRY);
-	unset_flag(flag::SUBS);
+
+	set_flag(flag::ZERO, m_registerAF.hi == 0);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::CARRY, false);
+	set_flag(flag::SUBS, false);
+
 	m_pc++;
 };
 
@@ -657,28 +650,31 @@ void Gb_core::x8_alu_or(BYTE r2){
 void Gb_core::x8_alu_cp(BYTE r2){
 	BYTE& a = m_registerAF.hi;
 
-	set_flag(flag::SUBS);
-	if(a == r2) set_flag(flag::ZERO);
-	if((a & 0x0f) - (r2 & 0x0f) < 0) set_flag(flag::HALF_CARRY);
-	if(a < r2) set_flag(flag::CARRY);
+	set_flag(flag::SUBS, true);
+	set_flag(flag::ZERO, a == r2);
+	set_flag(flag::HALF_CARRY, ((a & 0x0f) - (r2 & 0x0f) < 0));
+	set_flag(flag::CARRY, a < r2);
+
 	m_pc++;
 };
 
 void Gb_core::x8_alu_inc(reg_order n){
 	auto r = m_reg_rmap[static_cast<reg_order>(n)]();
 	auto res = m_reg_wmap[n](r + 1);
-	if(res == 0) set_flag(flag::ZERO);
-	unset_flag(flag::SUBS);
-	if((res & 0x0f) == 0x00) set_flag(flag::HALF_CARRY);
+
+	set_flag(flag::ZERO, res == 0);
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, ((res & 0x0f) == 0x00));
+
 	m_pc++;
 };
 
 void Gb_core::x8_alu_dec(reg_order n){
 	auto r = m_reg_rmap[static_cast<reg_order>(n)]();
 	auto res = m_reg_wmap[n](r - 1);
-	if(res == 0) set_flag(flag::ZERO);
-	set_flag(flag::SUBS);
-	if((res & 0x0f) == 0x0f) set_flag(flag::HALF_CARRY);
+	set_flag(flag::ZERO, res == 0);
+	set_flag(flag::SUBS, true);
+	set_flag(flag::HALF_CARRY, ((res & 0x0f) == 0x0f));
 	m_pc++;
 };
 
@@ -695,40 +691,35 @@ void Gb_core::x8_alu_daa(){
 	};
 
 	if(get_flag(flag::SUBS)){
-		if(static_cast<WORD>(A - correction) & 0x100) set_flag(flag::CARRY);
+		set_flag(flag::CARRY, (static_cast<WORD>(A - correction) & 0x100));
 		A -= correction;
 	}else{
-		if(static_cast<WORD>(A + correction) & 0x100) set_flag(flag::CARRY);
+		set_flag(flag::CARRY, (static_cast<WORD>(A + correction) & 0x100));
 		A += correction;
 	}
 	
-	if(A == 0) set_flag(flag::ZERO);
-	unset_flag(flag::HALF_CARRY);
+	set_flag(flag::ZERO, A == 0);
+	set_flag(flag::HALF_CARRY, false);
 
 	m_pc++;
 };
 
 void Gb_core::x8_alu_cpl(){
 	m_registerAF.hi = ~m_registerAF.hi;
-	set_flag(flag::SUBS);
-	set_flag(flag::HALF_CARRY);
+	set_flag(flag::SUBS, true);
+	set_flag(flag::HALF_CARRY, true);
 };
 
 void Gb_core::x8_alu_ccf(){
-	if(get_flag(flag::CARRY)){
-		unset_flag(flag::CARRY);
-	}else{
-		set_flag(flag::CARRY);
-	}
-
-	unset_flag(flag::HALF_CARRY);
-	unset_flag(flag::SUBS);
+	set_flag(flag::CARRY, !get_flag(flag::CARRY));
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::SUBS, false);
 };
 
 void Gb_core::x8_alu_scf(){
-	set_flag(flag::CARRY);
-	unset_flag(flag::HALF_CARRY);
-	unset_flag(flag::SUBS);
+	set_flag(flag::CARRY, true);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::SUBS, false);
 };
 
 void Gb_core::ctrl_return(){
@@ -762,15 +753,12 @@ void Gb_core::x16_alu_inc(WORD& rr){ rr++; m_pc++;};
 void Gb_core::x16_alu_dec(WORD& rr){ rr++; m_pc++;};
 
 void Gb_core::x16_alu_add(const WORD& rr){
-	unset_flag(flag::SUBS);
+	set_flag(flag::SUBS, false);
 	auto& hl = m_registerHL.pair;
 	hl += rr;
 
-	if((static_cast<unsigned int>(hl) + static_cast<unsigned int>(rr)) & 0x10000)
-		set_flag(flag::CARRY);
-
-	if(((hl & 0xfff) + (rr & 0xfff)) & 0x1000)
-		set_flag(flag::HALF_CARRY);
+	set_flag(flag::CARRY, ((static_cast<unsigned int>(hl) + static_cast<unsigned int>(rr)) & 0x10000));
+	set_flag(flag::HALF_CARRY, (((hl & 0xfff) + (rr & 0xfff)) & 0x1000));
 
 	m_pc++;
 };

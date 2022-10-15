@@ -89,8 +89,7 @@ class Gb_core{
 
 		void jmp_nn();
 
-		void set_flag(flag f);
-		void unset_flag(flag f);
+		void set_flag(flag f, bool set);
 		BYTE get_flag(flag f);
 
 		// alu handlers
