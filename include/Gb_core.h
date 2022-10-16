@@ -96,7 +96,7 @@ class Gb_core{
 
 		// control handlers
 		void ctrl_return();
-		void ctrl_call();
+		void ctrl_call(bool bond);
 		void ctrl_jr(bool cond);
 		void ctrl_rst(const WORD offset);
 

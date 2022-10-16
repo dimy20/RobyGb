@@ -13,11 +13,11 @@ void Gb_core::build_control(){
 	m_opcode_mat[0xd][0x0] = [this](){ if(!get_flag(flag::CARRY)) ctrl_return(); };
 	m_opcode_mat[0xd][0x4] = [this](){ if(get_flag(flag::CARRY)) ctrl_return(); };
 	// calls
-	m_opcode_mat[0xc][0xd] = [this](){ ctrl_call(); };
-	m_opcode_mat[0xc][0xc] = [this](){ if(get_flag(flag::ZERO)) ctrl_call(); };
-	m_opcode_mat[0xc][0x4] = [this](){ if(!get_flag(flag::ZERO)) ctrl_call(); };
-	m_opcode_mat[0xd][0x4] = [this](){ if(!get_flag(flag::CARRY)) ctrl_call(); };
-	m_opcode_mat[0xd][0xc] = [this](){ if(get_flag(flag::CARRY)) ctrl_call(); };
+	m_opcode_mat[0xc][0xd] = [this](){ ctrl_call(true); };
+	m_opcode_mat[0xc][0xc] = [this](){ ctrl_call(get_flag(flag::ZERO)); };
+	m_opcode_mat[0xc][0x4] = [this](){ ctrl_call(!get_flag(flag::ZERO)); };
+	m_opcode_mat[0xd][0x4] = [this](){ ctrl_call(!get_flag(flag::CARRY)); };
+	m_opcode_mat[0xd][0xc] = [this](){ ctrl_call(get_flag(flag::CARRY)); };
 	// jumps
 	m_opcode_mat[0xc][0x3] = [this](){ jmp_nn(); };
 	m_opcode_mat[0xc][0x2] = [this](){ if(!get_flag(flag::ZERO)) jmp_nn(); };
@@ -719,16 +719,21 @@ void Gb_core::ctrl_return(){
 	set_upper(m_pc, stack_pop());	
 };
 
-void Gb_core::ctrl_call(){
-	m_pc++;
-	BYTE upper = m_memory->read(m_pc++);
-	BYTE lower = m_memory->read(m_pc++);
+void Gb_core::ctrl_call(bool cond){
+	if(cond){
+		m_pc++;
+		BYTE upper = m_memory->read(m_pc++);
+		BYTE lower = m_memory->read(m_pc++);
 
-	stack_push(get_upper(m_pc)); 
-	stack_push(get_lower(m_pc));
+		stack_push(get_upper(m_pc));
+		stack_push(get_lower(m_pc));
 
-	WORD jmp_addr = upper | (lower << 8);
-	m_pc = jmp_addr;
+		WORD jmp_addr = upper | (lower << 8);
+		m_pc = jmp_addr;
+	}else{
+		m_pc += 3;
+	}
+
 };
 
 void Gb_core::ctrl_jr(bool cond){
