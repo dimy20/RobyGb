@@ -22,18 +22,7 @@
 
 #define LD_8BIT_CYCLES 8
 
-struct Gb_instruction;
-union Gb_register{
-	WORD pair; /* 16 bit paired register ex. HL*/
-	struct{
-		BYTE lo; // low byte ex. L
-		BYTE hi; // high byte ex. H
-	};
-};
-
 class Gb_core{
-	friend Gb_instruction;
-
 	public:
 		enum reg_order{
 			REG_B, REG_C,
@@ -58,13 +47,6 @@ class Gb_core{
 		void emulate_cycles(int n);
 		void init();
 
-		constexpr Gb_register r_AF() const { return m_registerAF; };
-		constexpr Gb_register r_BC() const { return m_registerBC; };
-		constexpr Gb_register r_DE() const { return m_registerDE; };
-		constexpr Gb_register r_HL() const { return m_registerHL; };
-		constexpr Gb_register sp() const {return m_sp; };
-		BYTE r_X(reg_order r) const;
-
 	private:
 		void build_opcode_matrix();
 		void build_registers_rmap();
@@ -73,10 +55,9 @@ class Gb_core{
 		void build_alu_x04_x45();
 		void build_alu_inc_dec();
 		void build_control();
+		void init_registers();
 
 		int _8bit_load(BYTE& rg, BYTE value);
-		void _8bit_ld_r1r2();
-		int ld_r_v(BYTE& r, BYTE v);
 		//Load absolute address addr with data from the 8-bit register r.
 		int ld_addr_r(WORD addr, BYTE r);
 		void _8bit_ldu8();
@@ -85,12 +66,11 @@ class Gb_core{
 		void _8bit_ld_ff00();
 
 		void _16_bit_ld();
-		void _16bit_ldsp();
 
 		void jmp_nn();
 
 		void set_flag(flag f, bool set);
-		BYTE get_flag(flag f);
+		constexpr BYTE get_flag(flag f);
 
 		// alu handlers
 		void x8_alu_xor(BYTE r2);
@@ -110,16 +90,14 @@ class Gb_core{
 
 		void x16_alu_inc(WORD& rr);
 		void x16_alu_dec(WORD& rr);
-		void x16_alu_add(const WORD& rr);
+		void x16_alu_add(WORD rr);
 		void x16_alu_addsp();
 
-		void pop(WORD& rr, bool af);
-		void push(const WORD& rr);
 
 		// control handlers
 		void ctrl_return();
 		void ctrl_call();
-		void ctrl_jr();
+		void ctrl_jr(bool cond);
 		void ctrl_rst(const WORD offset);
 
 		std::vector<ld_8bit> opcodes_8bitld_u8() const;
@@ -133,22 +111,67 @@ class Gb_core{
 		constexpr BYTE row(BYTE opcode){ return (opcode & 0xf0) >> 4; };
 		constexpr BYTE col(BYTE opcode){ return (opcode & 0x0f); };
 
+		void log();
+
+		constexpr void set_upper(WORD& r, BYTE value){ r &= 0xff00; r |= value; };
+		constexpr void set_lower(WORD& r, BYTE value){ r &= 0x00ff; r |= (value << 8);};
+		constexpr BYTE get_upper(const WORD& r){ return r & 0x00ff; };
+		constexpr BYTE get_lower(const WORD& r){ return (r & 0xff00) >> 8; };
+
+		constexpr BYTE get_B(){ return get_lower(m_registers[0]); };
+		constexpr BYTE get_C(){ return get_upper(m_registers[0]); };
+
+		constexpr BYTE get_D(){ return get_lower(m_registers[1]); };
+		constexpr BYTE get_E(){ return get_upper(m_registers[1]); };
+
+		constexpr BYTE get_H(){ return get_lower(m_registers[2]); };
+		constexpr BYTE get_L(){ return get_upper(m_registers[2]); };
+
+		constexpr BYTE get_A(){ return get_lower(m_registers[3]); };
+		constexpr BYTE get_F(){ return get_upper(m_registers[3]); };
+
+		constexpr WORD get_BC(){ return m_registers[0]; };
+		constexpr WORD get_DE(){ return m_registers[1]; };
+		constexpr WORD get_HL(){ return m_registers[2]; }
+		constexpr WORD get_AF(){ return m_registers[3]; };
+
+		constexpr void set_B(BYTE value){ set_lower(m_registers[0], value); };
+		constexpr void set_C(BYTE value){ set_upper(m_registers[0], value); };
+
+		constexpr void set_D(BYTE value){ set_lower(m_registers[1], value); };
+		constexpr void set_E(BYTE value){ set_upper(m_registers[1], value); };
+
+		constexpr void set_H(BYTE value){ set_lower(m_registers[2], value); };
+		constexpr void set_L(BYTE value){ set_upper(m_registers[2], value); };
+
+		constexpr void set_A(BYTE value){ set_lower(m_registers[3], value); };
+		constexpr void set_F(BYTE value){ set_upper(m_registers[3], value); };
+
+		constexpr void set_BC(WORD value) { m_registers[0] = value; };
+		constexpr void set_DE(WORD value) { m_registers[1] = value; };
+		constexpr void set_HL(WORD value) { m_registers[2] = value; };
+		constexpr void set_AF(WORD value) { m_registers[3] = value; };
+
+		void stack_push(BYTE value);
+		BYTE stack_pop();
+		void build_16bit_loads();
+		void build_8bit_loads();
+
 	private:
-		Gb_register m_registerAF;
-		Gb_register m_registerBC;
-		Gb_register m_registerDE;
-		Gb_register m_registerHL;
-		// some instructions acess the low and high bytes of the stack pointer,
-		// so we'll represent it as a register.
-		//WORD m_sp = SP_INIT_ADDR; // high ram
-		Gb_register m_sp;
+		enum reg16{
+			BC = 0,
+			DE,
+			HL,
+			AF
+		};
+		WORD m_registers[4];
+		WORD m_sp;
 
 		WORD m_pc = ENTRY_POINT;
 		Mem_mu * m_memory;
 
 		bool m_interrupts_enabled = true;
 		std::function<void(void)> m_opcode_mat[16][16];
-		//std::shared_ptr<Gb_instruction> m_opcode_mat[16][16];
 		std::map<int, std::function<BYTE(void)>> m_reg_rmap;
 		std::map<int, std::function<BYTE(BYTE)>> m_reg_wmap;
 		std::map<int, std::function<WORD&(void)>> m_reg16_map;
