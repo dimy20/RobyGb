@@ -553,11 +553,10 @@ constexpr BYTE Gb_core::get_flag(flag f){ return (get_F() >> f) & 0x1; };
 void Gb_core::x8_alu_add(BYTE r2){
 	BYTE r1 = get_A();
 
+	set_flag(flag::SUBS, false);
 	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 + 0x0f)) & 0x10));
-
-	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) > 0xff));
-
-	set_flag(flag::ZERO, r1 + r2 == 0);
+	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) & 0x100));
+	set_flag(flag::ZERO, static_cast<BYTE>(r1 + r2) == 0);
 
 	set_A(r1 + r2);
 	m_pc++;
@@ -583,7 +582,7 @@ void Gb_core::x8_alu_sub(BYTE r2){
 	set_flag(flag::HALF_CARRY, (static_cast<int>(r1 & 0x0f) < static_cast<int>(r2 & 0x0f)));
 	set_flag(flag::CARRY, r1 < r2);
 
-	set_A(r1 + r2);
+	set_A(r1 - r2);
 	m_pc++;
 };
 
