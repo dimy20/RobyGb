@@ -66,48 +66,34 @@ void Gb_core::build_control(){
 };
 
 void Gb_core::build_16bit_loads(){
-
 	// 0x120d;
-	m_opcode_mat[row(0xc1)][col(0xc1)] = [this]() { 
-		set_BC(stack_pop() | (stack_pop() << 8));
-		m_pc++;
+	m_opcode_mat[row(0xc1)][col(0xc1)] = [this](){ set_B(stack_pop()); set_C(stack_pop()); m_pc++; };
+	m_opcode_mat[row(0xd1)][col(0xd1)] = [this](){ set_D(stack_pop()); set_E(stack_pop()); m_pc++; };
+	m_opcode_mat[row(0xe1)][col(0xe1)] = [this](){ set_H(stack_pop()); set_L(stack_pop()); m_pc++; };
+	m_opcode_mat[row(0xf1)][col(0xf1)] = [this](){ set_A(stack_pop()); set_F(stack_pop()); m_pc++; };
+	m_opcode_mat[row(0xc5)][col(0xc5)] = [this](){ stack_push(get_C()); stack_push(get_B()); m_pc++; };
+	m_opcode_mat[row(0xd5)][col(0xd5)] = [this](){ stack_push(get_E()); stack_push(get_D()); m_pc++; };
+	m_opcode_mat[row(0xe5)][col(0xe5)] = [this](){ stack_push(get_L()); stack_push(get_H()); m_pc++; };
+	m_opcode_mat[row(0xf5)][col(0xf5)] = [this](){ stack_push(get_F()); stack_push(get_A()); m_pc++; };
+	m_opcode_mat[0x0][0x1] = [this](){
+		WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
+		set_BC(value);
+		m_pc += 3;
 	};
-
-	m_opcode_mat[row(0xd1)][col(0xd1)] = [this](){ 
-		set_DE(stack_pop() | (stack_pop() << 8));
-		m_pc++;
+	m_opcode_mat[0x1][0x1] = [this](){
+		WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
+		set_DE(value);
+		m_pc += 3;
 	};
-	m_opcode_mat[row(0xe1)][col(0xe1)] = [this](){ 
-		set_HL(stack_pop() | (stack_pop() << 8));
-		m_pc++;
+	m_opcode_mat[0x2][0x1] = [this](){
+		WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
+		set_HL(value);
+		m_pc += 3;
 	};
-	m_opcode_mat[row(0xf1)][col(0xf1)] = [this](){ 
-		// what about fff??
-		set_AF(stack_pop() | (stack_pop() << 8));
-		m_pc++;
-	};
-
-	m_opcode_mat[row(0xc5)][col(0xc5)] = [this](){ 
-		stack_push(get_C());
-		stack_push(get_B());
-		m_pc++;
-	};
-
-	m_opcode_mat[row(0xd5)][col(0xd5)] = [this](){ 
-		stack_push(get_E());
-		stack_push(get_D());
-		m_pc++;
-	};
-
-	m_opcode_mat[row(0xe5)][col(0xe5)] = [this](){ 
-		stack_push(get_L());
-		stack_push(get_H());
-		m_pc++;
-	};
-	m_opcode_mat[row(0xf5)][col(0xf5)] = [this](){ 
-		stack_push(get_F());
-		stack_push(get_A());
-		m_pc++;
+	m_opcode_mat[0x3][0x1] = [this](){
+		WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
+		m_sp = value;
+		m_pc += 3;
 	};
 };
 
@@ -169,9 +155,78 @@ void Gb_core::build_8bit_loads(){
 	}
 
 
+	m_opcode_mat[row(0xf0)][col(0xf0)] = [this](){
+		auto offset = m_memory->read(m_pc + 1);
+		set_A(m_memory->read(0xff00 + offset));
+		m_pc += 2;
+	};
+
+
+	m_opcode_mat[0xe][0x0] = [this](){
+		auto offset = m_memory->read(m_pc + 1);
+		m_memory->write(0xff00 + offset, get_A());
+		m_pc += 2;
+	};
+
+	m_opcode_mat[0xe][0x2] = [this](){ m_memory->write(0xff00 + get_C(), get_A()); m_pc++;};
+	m_opcode_mat[0xf][0x2] = [this](){ set_A(m_memory->read(0xff00 + get_C())); m_pc++;};
+
+	// ld [xx], A
+	m_opcode_mat[0x0][0x2] = [this](){ m_memory->write(get_BC(), get_A()); m_pc++; };
+	m_opcode_mat[0x1][0x2] = [this](){ m_memory->write(get_DE(), get_A()); m_pc++; };
+
+	m_opcode_mat[0x2][0x2] = [this](){ 
+		m_memory->write(get_HL(), get_A());
+		set_HL(get_HL() + 1);
+		m_pc++;
+	};
+
+	m_opcode_mat[0x3][0x2] = [this](){
+		m_memory->write(get_HL(), get_A());
+		set_HL(get_HL() - 1);
+		m_pc++;
+	};
+
+	m_opcode_mat[0xe][0xa] = [this](){
+		WORD addr = (m_memory->read(m_pc + 2) << 8)  | m_memory->read(m_pc + 1);
+		m_memory->write(addr, get_A());
+		m_pc += 3;
+	};
+
+	m_opcode_mat[0x0][0xa] = [this](){ set_A(m_memory->read(get_BC())); m_pc++; };
+	m_opcode_mat[0x1][0xa] = [this](){ set_A(m_memory->read(get_DE())); m_pc++; };
+
+	m_opcode_mat[0x2][0xa] = [this](){
+		set_A(m_memory->read(get_HL()));
+		set_HL(get_HL() + 1);
+		m_pc++;
+	};
+
+	m_opcode_mat[0x3][0xa] = [this](){
+		set_A(m_memory->read(get_HL()));
+		set_HL(get_HL() + 1);
+		m_pc++;
+	};
+
+	m_opcode_mat[0xf][0xa] = [this](){
+		auto addr = (m_memory->read(m_pc + 2) << 8)  | m_memory->read(m_pc + 1);
+		set_A(m_memory->read(addr));
+		m_pc += 3;
+	};
+
+	m_opcode_mat[0x0][0x06] = [this](){ set_B(m_memory->read(m_pc + 1)); m_pc += 2; };
+	m_opcode_mat[0x1][0x06] = [this](){ set_D(m_memory->read(m_pc + 1)); m_pc += 2; };
+	m_opcode_mat[0x2][0x06] = [this](){ set_H(m_memory->read(m_pc + 1)); m_pc += 2; };
+	m_opcode_mat[0x0][0x0e] = [this](){ set_C(m_memory->read(m_pc + 1)); m_pc += 2; };
+	m_opcode_mat[0x1][0x0e] = [this](){ set_E(m_memory->read(m_pc + 1)); m_pc += 2; };
+	m_opcode_mat[0x2][0x0e] = [this](){ set_L(m_memory->read(m_pc + 1)); m_pc += 2; };
+	m_opcode_mat[0x3][0x0e] = [this](){ set_A(m_memory->read(m_pc + 1)); m_pc += 2; };
+	m_opcode_mat[0x3][0x06] = [this](){ m_memory->write(get_HL(), m_memory->read(m_pc + 1)); m_pc += 2; };
+
 };
 
-void Gb_core::build_alu_x80_xbf(){
+void Gb_core::build_alu(){
+	// opcodes mappings for subgrid [0x80, 0xbf]
 	for(int j = 0; j <= 7; j++){
 		m_opcode_mat[8][j] = [this](){
 			auto opcode = m_memory->read(m_pc);
@@ -236,10 +291,7 @@ void Gb_core::build_alu_x80_xbf(){
 		};
 	};
 
-
-};
-
-void Gb_core::build_alu_inc_dec(){
+	// incs and decs mappings
 	for(int opcode = 0x04; opcode <= 0x34; opcode += 0x10){
 		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
 			auto opcode = m_memory->read(m_pc);
@@ -267,46 +319,22 @@ void Gb_core::build_alu_inc_dec(){
 			x8_alu_dec(static_cast<reg_order>((row(opcode) * 2) + 1));
 		};
 	}
-};
 
-void Gb_core::build_opcode_matrix(){
+	// alu misc opcode mappings
+	m_opcode_mat[0xc][0x6] = [this](){ x8_alu_add(m_memory->read(++m_pc)); };
+	m_opcode_mat[0xd][0x6] = [this](){ x8_alu_sub(m_memory->read(++m_pc)); };
+	m_opcode_mat[0xe][0x6] = [this](){ x8_alu_and(m_memory->read(++m_pc)); };
+	m_opcode_mat[0xf][0x6] = [this](){ x8_alu_or(m_memory->read(++m_pc)); };
 
-	for(auto opcode : opcodes_8bitld_u8()){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _8bit_ldu8(); };
-	};
-
-	for(auto opcode : opcodes_8bitld_XX_R()){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _8bit_ld_xxA(); };
-	};
-
-	for(auto opcode : opcodes_8bitld_Axx()){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this]() { _8bit_ld_Axx(); };
-	};
-
-	for(auto opcode : opcodes_16bitld_u16()){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _16_bit_ld(); };
-	};
-
-	for(auto opcode : opcodes_ff00()){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){ _8bit_ld_ff00(); };
-	};
-
-	// alu
-	m_opcode_mat[0xc][0x6] = [this](){ x8_alu_add(m_memory->read(m_pc++)); };
-	m_opcode_mat[0xd][0x6] = [this](){ x8_alu_sub(m_memory->read(m_pc++)); };
-	m_opcode_mat[0xe][0x6] = [this](){ x8_alu_and(m_memory->read(m_pc++)); };
-	m_opcode_mat[0xf][0x6] = [this](){ x8_alu_or(m_memory->read(m_pc++)); };
-
-	m_opcode_mat[0xc][0xe] = [this](){ x8_alu_adc(m_memory->read(m_pc++)); };
-	m_opcode_mat[0xd][0xe] = [this](){ x8_alu_sbc(m_memory->read(m_pc++)); };
-	m_opcode_mat[0xe][0xe] = [this](){ x8_alu_xor(m_memory->read(m_pc++)); };
-	m_opcode_mat[0xf][0xe] = [this](){ x8_alu_cp(m_memory->read(m_pc++)); };
+	m_opcode_mat[0xc][0xe] = [this](){ x8_alu_adc(m_memory->read(++m_pc)); };
+	m_opcode_mat[0xd][0xe] = [this](){ x8_alu_sbc(m_memory->read(++m_pc)); };
+	m_opcode_mat[0xe][0xe] = [this](){ x8_alu_xor(m_memory->read(++m_pc)); };
+	m_opcode_mat[0xf][0xe] = [this](){ x8_alu_cp(m_memory->read(++m_pc)); };
 
 	m_opcode_mat[0x2][0x7] = [this](){ x8_alu_daa(); };
 	m_opcode_mat[0x3][0x7] = [this](){ x8_alu_scf(); };
 	m_opcode_mat[0x2][0xf] = [this](){ x8_alu_cpl(); };
 	m_opcode_mat[0x3][0xf] = [this](){ x8_alu_ccf(); };
-
 };
 
 void Gb_core::build_registers_rmap(){
@@ -353,9 +381,7 @@ void Gb_core::init_registers(){
 };
 
 void Gb_core::init(){
-	build_opcode_matrix();
-	build_alu_x80_xbf();
-	build_alu_inc_dec();
+	build_alu();
 	build_control();
 	build_registers_rmap();
 	build_registers_wmap();
@@ -379,166 +405,10 @@ void Gb_core::emulate_cycles(int n){
 	}
 };
 
-int Gb_core::_8bit_load(BYTE& rg, BYTE value){
-	rg = value;
-	return LD_8BIT_CYCLES;
-};
-
-int Gb_core::ld_addr_r(WORD addr, BYTE r){
-	switch(r){
-		case Gb_core::reg_order::REG_B: m_memory->write(addr, get_B()); break;
-		case Gb_core::reg_order::REG_C: m_memory->write(addr, get_C()); break;
-		case Gb_core::reg_order::REG_D: m_memory->write(addr, get_D()); break;
-		case Gb_core::reg_order::REG_E: m_memory->write(addr, get_E()); break;
-		case Gb_core::reg_order::REG_H: m_memory->write(addr, get_H()); break;
-		case Gb_core::reg_order::REG_L: m_memory->write(addr, get_L()); break;
-		default: break;
-	};
-	return 8;
-};
-
 void Gb_core::jmp_nn(){
 	m_pc++;
 	WORD nn = (m_memory->read(m_pc + 1) << 8) | m_memory->read(m_pc);
 	m_pc = nn;
-};
-
-void Gb_core::_8bit_ldu8(){
-	auto opcode = m_memory->read(m_pc);
-	if((opcode & 0x0f) == 0x6){
-		switch((opcode & 0xf0) >> 4){
-			case 0: set_B(m_memory->read(m_pc + 1)); break;
-			case 1: set_D(m_memory->read(m_pc + 1)); break;
-			case 2: set_H(m_memory->read(m_pc + 1)); break;
-			case 3: m_memory->write(get_HL(), m_memory->read(m_pc + 1)); break;
-		}
-	}else if((opcode & 0x0f) == 0xe){
-		switch((opcode & 0xf0) >> 4){
-			case 0: set_C(m_memory->read(m_pc + 1)); break;
-			case 1: set_E(m_memory->read(m_pc + 1)); break;
-			case 2: set_L(m_memory->read(m_pc + 1)); break;
-			case 3: set_A(m_memory->read(m_pc + 1)); break;
-		}
-	}else std::cerr << "Uknown opcode : " << (int)opcode << std::endl;
-
-	m_pc += 2;
-};
-
-void Gb_core::_8bit_ld_xxA(){
-	auto opcode = m_memory->read(m_pc);
-	WORD value, addr;
-	switch(static_cast<ld_8bit>(opcode)){
-		case ld_8bit::_BC_A: m_memory->write(get_BC(), get_A()); break;
-		case ld_8bit::_DE_A: m_memory->write(get_DE(), get_A()); break;
-		case ld_8bit::_HL_INC_A:
-			m_memory->write(get_HL(), get_A());
-			set_HL(get_HL() + 1);
-			break;
-		case ld_8bit::_HL_DEC_A:
-			m_memory->write(get_HL(), get_A());
-			set_HL(get_HL() - 1);
-			break;
-		case ld_8bit::_U16_A:
-			addr = (m_memory->read(m_pc + 2) << 8)  | m_memory->read(m_pc + 1);
-			m_memory->write(addr, get_A());
-			m_pc += 2;
-			break;
-		default: std::cerr << "here Uknown opcode : " << (int)opcode << std::endl;
-	}
-	m_pc++;
-};
-		
-void Gb_core::_8bit_ld_Axx(){
-	auto opcode = m_memory->read(m_pc);
-	WORD addr;
-	BYTE value;
-	switch(static_cast<ld_8bit>(opcode)){
-		case ld_8bit::A_BC_: set_A(m_memory->read(get_BC())); break;
-		case ld_8bit::A_DE_: set_A(m_memory->read(get_DE())); break;
-		case ld_8bit::A_HL_INC:
-			set_A(m_memory->read(get_HL()));
-			set_HL(get_HL() + 1);
-			break;
-		case ld_8bit::A_HL_DEC:
-			set_A(m_memory->read(get_HL()));
-			set_HL(get_HL() + 1);
-			break;
-		case ld_8bit::A_U16_:
-			addr = (m_memory->read(m_pc + 2) << 8)  | m_memory->read(m_pc + 1);
-			set_A(m_memory->read(addr));
-			m_pc += 2;
-			break;
-		default: std::cerr << "here Uknown opcode : " << (int)opcode << std::endl;
-	}
-	m_pc++;
-};
-
-void Gb_core::_16_bit_ld(){
-	auto opcode = m_memory->read(m_pc);
-	WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
-	switch(static_cast<ld_16bit>(opcode)){
-		case ld_16bit::BC_U16: set_BC(value); break;
-		case ld_16bit::DE_U16: set_DE(value); break;
-		case ld_16bit::HL_U16: set_HL(value); break;
-		case ld_16bit::SP_U16: m_sp = value; break;
-		default:
-			std::cerr << "Uknown opcode " << std::hex << (int)opcode << std::endl;
-			break;
-	};
-	m_pc += 3;
-};
-
-std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_u8() const{
-	return {ld_8bit::B_U8, ld_8bit::D_U8, ld_8bit::H_U8, ld_8bit::A_U8,
-			ld_8bit::HL_U8,ld_8bit::C_U8, ld_8bit::E_U8, ld_8bit::L_U8};
-}
-
-std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_XX_R() const{
-	return {ld_8bit::_BC_A, ld_8bit::_DE_A, ld_8bit::_HL_INC_A, ld_8bit::_HL_DEC_A, ld_8bit::_U16_A};
-};
-
-std::vector<Gb_core::ld_8bit> Gb_core::opcodes_8bitld_Axx() const{
-	return {ld_8bit::A_BC_, ld_8bit::A_DE_, ld_8bit::A_HL_INC, ld_8bit::A_HL_DEC, ld_8bit::A_U16_};
-}
-
-std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_u16() const{
-	return {ld_16bit::BC_U16, ld_16bit::DE_U16, ld_16bit::HL_U16, ld_16bit::SP_U16};
-}
-
-std::vector<Gb_core::ld_8bit> Gb_core::opcodes_ff00() const {
-	return {ld_8bit::_FF00_U8_A, ld_8bit::A_FF00_U8_, ld_8bit::_FF00_C_A,
-			ld_8bit::A_FF00_C_};
-}
-
-std::vector<Gb_core::ld_16bit> Gb_core::opcodes_16bitld_stack() const{
-	return {ld_16bit::POP_BC, ld_16bit::PUSH_BC, ld_16bit::PUSH_DE, ld_16bit::POP_DE,
-			ld_16bit::POP_HL, ld_16bit::PUSH_HL, ld_16bit::POP_AF, ld_16bit::PUSH_AF};
-};
-
-void Gb_core::_8bit_ld_ff00(){
-	auto opcode = m_memory->read(m_pc);
-	WORD offset;
-	switch(static_cast<ld_8bit>(opcode)){
-		case ld_8bit::_FF00_U8_A:
-			offset = m_memory->read(m_pc + 1);
-			m_memory->write(0xff00 + offset, get_A());
-			m_pc++;
-			break;
-		case ld_8bit::A_FF00_U8_:
-			offset = m_memory->read(m_pc + 1);
-			set_A(m_memory->read(0xff00 + offset));
-			m_pc++;
-			break;
-		case ld_8bit::_FF00_C_A:
-			m_memory->write(0xff00 + get_C(), get_A());
-			break;
-		case ld_8bit::A_FF00_C_:
-			set_A(m_memory->read(0xff00 + get_C()));
-			break;
-		default:
-			std::cerr << "Uknown opcode : " << std::hex << (int)opcode << std::endl;
-	};
-	m_pc++;
 };
 
 BYTE Gb_core::stack_pop(){ return m_memory->read(++m_sp); };

@@ -48,24 +48,14 @@ class Gb_core{
 		void init();
 
 	private:
-		void build_opcode_matrix();
 		void build_registers_rmap();
 		void build_registers_wmap();
-		void build_alu_x80_xbf();
-		void build_alu_x04_x45();
-		void build_alu_inc_dec();
+		void build_alu();
 		void build_control();
+		void build_16bit_loads();
+		void build_8bit_loads();
+
 		void init_registers();
-
-		int _8bit_load(BYTE& rg, BYTE value);
-		//Load absolute address addr with data from the 8-bit register r.
-		int ld_addr_r(WORD addr, BYTE r);
-		void _8bit_ldu8();
-		void _8bit_ld_xxA();
-		void _8bit_ld_Axx();
-		void _8bit_ld_ff00();
-
-		void _16_bit_ld();
 
 		void jmp_nn();
 
@@ -99,14 +89,6 @@ class Gb_core{
 		void ctrl_call(bool bond);
 		void ctrl_jr(bool cond);
 		void ctrl_rst(const WORD offset);
-
-		std::vector<ld_8bit> opcodes_8bitld_u8() const;
-		std::vector<ld_8bit> opcodes_8bitld_XX_R() const;
-		std::vector<ld_8bit> opcodes_8bitld_Axx() const;
-		std::vector<ld_8bit> opcodes_ff00() const;
-
-		std::vector<ld_16bit> opcodes_16bitld_u16() const;
-		std::vector<ld_16bit> opcodes_16bitld_stack() const;
 
 		constexpr BYTE row(BYTE opcode){ return (opcode & 0xf0) >> 4; };
 		constexpr BYTE col(BYTE opcode){ return (opcode & 0x0f); };
@@ -154,8 +136,7 @@ class Gb_core{
 
 		void stack_push(BYTE value);
 		BYTE stack_pop();
-		void build_16bit_loads();
-		void build_8bit_loads();
+
 
 	private:
 		enum reg16{
