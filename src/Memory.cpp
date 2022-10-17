@@ -19,6 +19,7 @@ BYTE Mem_mu::read(WORD addr) const {
 	if(addr >= 0xfea0 && addr <= 0xfeff) return 0x00;
 	if(addr >= 0xff00 && addr <= 0xff7f) return m_memory.io_registers[addr - 0xff00];
 	if(addr >= 0xff80 && addr <= 0xfffe) return m_memory.hram[addr - 0xff80];
+	std::cout << "read unimplemented " << std::endl;
 };
 
 BYTE Mem_mu::read_wram_mirror(WORD addr) const {
@@ -57,7 +58,10 @@ void Mem_mu::write_wram(WORD addr, BYTE value){
 
 void Mem_mu::write(WORD addr, BYTE value){
 	// dont allow writes to ROM memory
-	if(addr <= 0x8000) m_cart->mbc_intercept(addr, value);
+	if(addr <= 0x7fff) m_cart->mbc_intercept(addr, value);
+	else if(addr >= 0x8000 && addr <= 0x9fff){
+		m_memory.vram[addr - 0x8000] = value;
+	}
 	else if(addr >= 0xa000 && addr <= 0xbfff) m_cart->write(addr, value);
 	else if(addr >= 0xfea0 && addr <= 0xfeff) return; //prohibited
 	else if(addr >= 0xe000 && addr <= 0xfdff) write_wram_mirror(addr, value);
@@ -66,12 +70,14 @@ void Mem_mu::write(WORD addr, BYTE value){
 		m_memory.io_registers[addr - 0xff00] = value;
 	}else if(addr >= 0xff80 && addr <= 0xfffe){ // high ram
 		m_memory.hram[addr - 0xff80] = value;
-	}
-	else{
+	}else if(addr == 0xffff){
+		m_memory.ie_register = value;
+	}else{
 		std::cout << "Unimplemented yet" << std::endl;
 	}
 };
 
 void Mem_mu::init(Gb_cartridge * cart){
 	m_cart = cart;
+	m_memory.io_registers[0x0044] = 0x90;
 };

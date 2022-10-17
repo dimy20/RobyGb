@@ -2,8 +2,7 @@
 #include "Gb_emulator.h"
 #include "Gb_cartridge.h"
 int main(){
-	std::cout << "Gameboy Emulator!" << std::endl;
 	Gb_emulator gb;
-	gb.run("testgb.gb");
+	gb.run("01-special.gb");
 	return 0;
 };

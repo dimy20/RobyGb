@@ -104,9 +104,7 @@ void Gb_cartridge::write(WORD addr, BYTE value) {
 BYTE Gb_cartridge::read_rom(WORD addr){
 	assert(addr <= 0x8000 && "Rom addr should be in range 0x0000 - 0x8000");
 	if(addr <= 0x3fff) return m_memory[addr];
-	// return value for the selected rom bank.
-	WORD rom_offset = addr - 0x4000;
-	return m_memory[rom_offset + (mbc.m_rom_bank_number * 0x4000)];
+	return m_memory[addr + (mbc.m_rom_bank_number * 0x4000)];
 };
 
 BYTE Gb_cartridge::read_ram(WORD addr){
