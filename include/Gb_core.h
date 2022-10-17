@@ -135,6 +135,8 @@ class Gb_core{
 		BYTE pc_get_byte(){ return m_memory->read(m_pc++); };
 		WORD pc_get_word();
 
+		void build_cb_mat();
+		BYTE srl(BYTE r);
 	private:
 		enum reg16{
 			BC = 0,
@@ -150,6 +152,8 @@ class Gb_core{
 
 		bool m_interrupts_enabled = true;
 		std::function<void(void)> m_opcode_mat[16][16];
+		std::function<void(void)> m_cb_mat[16][16];
+
 		std::map<int, std::function<BYTE(void)>> m_reg_rmap;
 		std::map<int, std::function<BYTE(BYTE)>> m_reg_wmap;
 		std::map<int, std::function<WORD&(void)>> m_reg16_map;

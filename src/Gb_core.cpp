@@ -323,6 +323,20 @@ void Gb_core::init_registers(){
 	m_sp = SP_INIT_ADDR;
 };
 
+void Gb_core::build_cb_mat(){
+	m_cb_mat[0x3][0x8] = [this](){ set_B(srl(get_B())); };
+	m_cb_mat[0x3][0x9] = [this](){ set_C(srl(get_C())); };
+	m_cb_mat[0x3][0xa] = [this](){ set_D(srl(get_D())); };
+	m_cb_mat[0x3][0xb] = [this](){ set_E(srl(get_E())); };
+	m_cb_mat[0x3][0xc] = [this](){ set_H(srl(get_H())); };
+	m_cb_mat[0x3][0xd] = [this](){ set_L(srl(get_L())); };
+	m_cb_mat[0x3][0xe] = [this](){ 
+		auto res = srl(m_memory->read(get_HL()));
+		m_memory->write(get_HL(), res);
+	};
+	m_cb_mat[0x3][0xf] = [this](){ set_A(srl(get_A())); };
+};
+
 void Gb_core::init(){
 	build_alu();
 	build_control();
@@ -330,16 +344,27 @@ void Gb_core::init(){
 	build_registers_wmap();
 	build_8bit_loads();
 	build_16bit_loads();
+	build_cb_mat();
 	init_registers();
+
+	m_opcode_mat[0xc][0xb] = [this](){ // forward opcode to m_cb_mat
+		auto opcode = pc_get_byte();
+		auto op_handler = m_cb_mat[ROW(opcode)][COL(opcode)];
+		if(op_handler != nullptr){
+			op_handler();
+		}else{
+			std::cerr << "Unknown cb opcode : " << std::hex << (int)opcode << std::endl;
+			exit(1);
+		}
+	};
 };
 
 // real cycles not taken into account for now.
 void Gb_core::emulate_cycles(int n){
 	for(int i = 0; i < n; i++){
 		log();
-		auto opcode = m_memory->read(m_pc);
+		auto opcode = pc_get_byte();
 		auto opcode_handler = m_opcode_mat[ROW(opcode)][COL(opcode)];
-		m_pc++;
 		if(opcode_handler != nullptr){
 			opcode_handler();
 		}else{
@@ -575,6 +600,15 @@ WORD Gb_core::pc_get_word(){
 	WORD value = (m_memory->read(m_pc + 1) << 8) | (m_memory->read(m_pc));
 	m_pc += 2;
 	return value;
+};
+
+BYTE Gb_core::srl(BYTE r){
+	set_flag(flag::CARRY, r & 0x1);
+	r = r >> 1;
+	set_flag(flag::ZERO, r == 0);
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, false);
+	return r;
 };
 
 void Gb_core::log(){
