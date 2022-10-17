@@ -6,7 +6,7 @@ Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {};
 
 void Gb_core::build_control(){
 	// returns
-	m_opcode_mat[0x0][0x0] = [this](){ m_pc++; };
+	m_opcode_mat[0x0][0x0] = [this](){ return; };
 	m_opcode_mat[0xc][0x9] = [this](){ ctrl_return(); };
 	m_opcode_mat[0xc][0x0] = [this](){ if(!get_flag(flag::ZERO)) ctrl_return(); };
 	m_opcode_mat[0xc][0x8] = [this](){ if(get_flag(flag::ZERO)) ctrl_return(); };
@@ -32,8 +32,8 @@ void Gb_core::build_control(){
 	m_opcode_mat[0x2][0x0] = [this](){ ctrl_jr(!get_flag(flag::ZERO)); };
 	m_opcode_mat[0x3][0x0] = [this](){ ctrl_jr(!get_flag(flag::CARRY)); };
 	// ime
-	m_opcode_mat[0xf][0x3] = [this](){ m_interrupts_enabled = false; m_pc++; };
-	m_opcode_mat[0xf][0xb] = [this](){ m_interrupts_enabled = true; m_pc++; };
+	m_opcode_mat[0xf][0x3] = [this](){ m_interrupts_enabled = false; };
+	m_opcode_mat[0xf][0xb] = [this](){ m_interrupts_enabled = true; };
 	m_opcode_mat[0xd][0x9] = [this](){ m_interrupts_enabled = true; ctrl_return(); };
 	//rst
 	m_opcode_mat[0xc][0x7] = [this]() { ctrl_rst(0x00); };
@@ -46,15 +46,15 @@ void Gb_core::build_control(){
 	m_opcode_mat[0xf][0xf] = [this]() { ctrl_rst(0x38); };
 
 	// x16 alu arithmetic mappings
-	m_opcode_mat[0x0][0x3] = [this]() { set_BC(get_BC() + 1); m_pc++; };
-	m_opcode_mat[0x1][0x3] = [this]() { set_DE(get_DE() + 1); m_pc++; };
-	m_opcode_mat[0x2][0x3] = [this]() { set_HL(get_HL() + 1); m_pc++; };
-	m_opcode_mat[0x3][0x3] = [this]() { m_sp++; m_pc++;};
+	m_opcode_mat[0x0][0x3] = [this]() { set_BC(get_BC() + 1); };
+	m_opcode_mat[0x1][0x3] = [this]() { set_DE(get_DE() + 1); };
+	m_opcode_mat[0x2][0x3] = [this]() { set_HL(get_HL() + 1); };
+	m_opcode_mat[0x3][0x3] = [this]() { m_sp++; };
 
-	m_opcode_mat[0x0][0xb] = [this]() { set_BC(get_BC() - 1); m_pc++; };
-	m_opcode_mat[0x1][0xb] = [this]() { set_DE(get_DE() - 1); m_pc++; };
-	m_opcode_mat[0x2][0xb] = [this]() { set_HL(get_HL() - 1); m_pc++; };
-	m_opcode_mat[0x3][0xb] = [this]() { set_BC(get_BC() - 1); m_pc++; };
+	m_opcode_mat[0x0][0xb] = [this]() { set_BC(get_BC() - 1); };
+	m_opcode_mat[0x1][0xb] = [this]() { set_DE(get_DE() - 1); };
+	m_opcode_mat[0x2][0xb] = [this]() { set_HL(get_HL() - 1); };
+	m_opcode_mat[0x3][0xb] = [this]() { set_BC(get_BC() - 1); };
 
 	m_opcode_mat[0x0][0x9] = [this]() { x16_alu_add(get_BC()); };
 	m_opcode_mat[0x1][0x9] = [this]() { x16_alu_add(get_DE()); };
@@ -62,274 +62,217 @@ void Gb_core::build_control(){
 	m_opcode_mat[0x3][0x9] = [this]() { x16_alu_add(m_sp); };
 
 	m_opcode_mat[0xe][0x8] = [this]() { x16_alu_addsp(); };
-	m_opcode_mat[0xf][0x8] = [this]() { x16_alu_addsp(); set_HL(m_sp); m_pc++; };
+	m_opcode_mat[0xf][0x8] = [this]() { x16_alu_addsp(); set_HL(m_sp); };
 };
 
 void Gb_core::build_16bit_loads(){
 	// 0x120d;
-	m_opcode_mat[row(0xc1)][col(0xc1)] = [this](){ set_B(stack_pop()); set_C(stack_pop()); m_pc++; };
-	m_opcode_mat[row(0xd1)][col(0xd1)] = [this](){ set_D(stack_pop()); set_E(stack_pop()); m_pc++; };
-	m_opcode_mat[row(0xe1)][col(0xe1)] = [this](){ set_H(stack_pop()); set_L(stack_pop()); m_pc++; };
-	m_opcode_mat[row(0xf1)][col(0xf1)] = [this](){ set_A(stack_pop()); set_F(stack_pop()); m_pc++; };
-	m_opcode_mat[row(0xc5)][col(0xc5)] = [this](){ stack_push(get_C()); stack_push(get_B()); m_pc++; };
-	m_opcode_mat[row(0xd5)][col(0xd5)] = [this](){ stack_push(get_E()); stack_push(get_D()); m_pc++; };
-	m_opcode_mat[row(0xe5)][col(0xe5)] = [this](){ stack_push(get_L()); stack_push(get_H()); m_pc++; };
-	m_opcode_mat[row(0xf5)][col(0xf5)] = [this](){ stack_push(get_F()); stack_push(get_A()); m_pc++; };
-	m_opcode_mat[0x0][0x1] = [this](){
-		WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
-		set_BC(value);
-		m_pc += 3;
-	};
-	m_opcode_mat[0x1][0x1] = [this](){
-		WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
-		set_DE(value);
-		m_pc += 3;
-	};
-	m_opcode_mat[0x2][0x1] = [this](){
-		WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
-		set_HL(value);
-		m_pc += 3;
-	};
-	m_opcode_mat[0x3][0x1] = [this](){
-		WORD value = (m_memory->read(m_pc + 2) << 8) | (m_memory->read(m_pc + 1));
-		m_sp = value;
-		m_pc += 3;
-	};
+	m_opcode_mat[row(0xc1)][col(0xc1)] = [this](){ set_B(stack_pop()); set_C(stack_pop()); };
+	m_opcode_mat[row(0xd1)][col(0xd1)] = [this](){ set_D(stack_pop()); set_E(stack_pop()); };
+	m_opcode_mat[row(0xe1)][col(0xe1)] = [this](){ set_H(stack_pop()); set_L(stack_pop()); };
+	m_opcode_mat[row(0xf1)][col(0xf1)] = [this](){ set_A(stack_pop()); set_F(stack_pop()); };
+	m_opcode_mat[row(0xc5)][col(0xc5)] = [this](){ stack_push(get_C()); stack_push(get_B()); };
+	m_opcode_mat[row(0xd5)][col(0xd5)] = [this](){ stack_push(get_E()); stack_push(get_D()); };
+	m_opcode_mat[row(0xe5)][col(0xe5)] = [this](){ stack_push(get_L()); stack_push(get_H()); };
+	m_opcode_mat[row(0xf5)][col(0xf5)] = [this](){ stack_push(get_F()); stack_push(get_A()); };
+	m_opcode_mat[0x0][0x1] = [this](){ set_BC(pc_get_word()); };
+	m_opcode_mat[0x1][0x1] = [this](){ set_DE(pc_get_word()); };
+	m_opcode_mat[0x2][0x1] = [this](){ set_HL(pc_get_word()); };
+	m_opcode_mat[0x3][0x1] = [this](){ m_sp = pc_get_word(); };
 };
 
 void Gb_core::build_8bit_loads(){
 	for(int opcode = 0x40; opcode <= 0x47; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			set_B(m_reg_rmap[opcode % 8]());
-			m_pc++;
 		};
 	};
 
 	for(int opcode = 0x48; opcode <= 0x4f; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			set_C(m_reg_rmap[opcode % 8]());
-			m_pc++;
 		};
 	};
 
 	for(int opcode = 0x50; opcode <= 0x47; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			set_D(m_reg_rmap[opcode % 8]());
-			m_pc++;
 		};
 	};
 
 	for(int opcode = 0x58; opcode <= 0x5f; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			set_E(m_reg_rmap[opcode % 8]());
-			m_pc++;
 		};
 	};
 
 	for(int opcode = 0x60; opcode <= 0x67; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			set_H(m_reg_rmap[opcode % 8]());
-			m_pc++;
 		};
 	}
 
 	for(int opcode = 0x68; opcode <= 0x6f; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			set_L(m_reg_rmap[opcode % 8]());
-			m_pc++;
 		};
 	}
 
 	for(int opcode = 0x70; opcode <= 0x77; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			m_memory->write(get_HL(), m_reg_rmap[opcode % 8]());
-			m_pc++;
 		};
 	}
 
 	for(int opcode = 0x78; opcode <= 0x7f; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			set_A(m_reg_rmap[opcode % 8]());
-			m_pc++;
 		};
 	}
 
-
-	m_opcode_mat[row(0xf0)][col(0xf0)] = [this](){
-		auto offset = m_memory->read(m_pc + 1);
-		set_A(m_memory->read(0xff00 + offset));
-		m_pc += 2;
-	};
-
-
-	m_opcode_mat[0xe][0x0] = [this](){
-		auto offset = m_memory->read(m_pc + 1);
-		m_memory->write(0xff00 + offset, get_A());
-		m_pc += 2;
-	};
-
-	m_opcode_mat[0xe][0x2] = [this](){ m_memory->write(0xff00 + get_C(), get_A()); m_pc++;};
-	m_opcode_mat[0xf][0x2] = [this](){ set_A(m_memory->read(0xff00 + get_C())); m_pc++;};
+	// 0xff00 loads
+	m_opcode_mat[0xf][0x0] = [this](){ set_A(m_memory->read(0xff00 + pc_get_byte()));};
+	m_opcode_mat[0xe][0x0] = [this](){ m_memory->write(0xff00 + pc_get_byte(), get_A());};
+	m_opcode_mat[0xe][0x2] = [this](){ m_memory->write(0xff00 + get_C(), get_A()); };
+	m_opcode_mat[0xf][0x2] = [this](){ set_A(m_memory->read(0xff00 + get_C())); };
 
 	// ld [xx], A
-	m_opcode_mat[0x0][0x2] = [this](){ m_memory->write(get_BC(), get_A()); m_pc++; };
-	m_opcode_mat[0x1][0x2] = [this](){ m_memory->write(get_DE(), get_A()); m_pc++; };
+	m_opcode_mat[0x0][0x2] = [this](){ m_memory->write(get_BC(), get_A()); };
+	m_opcode_mat[0x1][0x2] = [this](){ m_memory->write(get_DE(), get_A()); };
 
 	m_opcode_mat[0x2][0x2] = [this](){ 
 		m_memory->write(get_HL(), get_A());
 		set_HL(get_HL() + 1);
-		m_pc++;
 	};
 
 	m_opcode_mat[0x3][0x2] = [this](){
 		m_memory->write(get_HL(), get_A());
 		set_HL(get_HL() - 1);
-		m_pc++;
 	};
 
 	m_opcode_mat[0xe][0xa] = [this](){
-		WORD addr = (m_memory->read(m_pc + 2) << 8)  | m_memory->read(m_pc + 1);
+		WORD addr = pc_get_word();
 		m_memory->write(addr, get_A());
-		m_pc += 3;
 	};
 
-	m_opcode_mat[0x0][0xa] = [this](){ set_A(m_memory->read(get_BC())); m_pc++; };
-	m_opcode_mat[0x1][0xa] = [this](){ set_A(m_memory->read(get_DE())); m_pc++; };
+	m_opcode_mat[0x0][0xa] = [this](){ set_A(m_memory->read(get_BC())); };
+	m_opcode_mat[0x1][0xa] = [this](){ set_A(m_memory->read(get_DE())); };
 
 	m_opcode_mat[0x2][0xa] = [this](){
 		set_A(m_memory->read(get_HL()));
 		set_HL(get_HL() + 1);
-		m_pc++;
 	};
 
 	m_opcode_mat[0x3][0xa] = [this](){
 		set_A(m_memory->read(get_HL()));
 		set_HL(get_HL() + 1);
-		m_pc++;
 	};
 
-	m_opcode_mat[0xf][0xa] = [this](){
-		auto addr = (m_memory->read(m_pc + 2) << 8)  | m_memory->read(m_pc + 1);
-		set_A(m_memory->read(addr));
-		m_pc += 3;
-	};
-
-	m_opcode_mat[0x0][0x06] = [this](){ set_B(m_memory->read(m_pc + 1)); m_pc += 2; };
-	m_opcode_mat[0x1][0x06] = [this](){ set_D(m_memory->read(m_pc + 1)); m_pc += 2; };
-	m_opcode_mat[0x2][0x06] = [this](){ set_H(m_memory->read(m_pc + 1)); m_pc += 2; };
-	m_opcode_mat[0x0][0x0e] = [this](){ set_C(m_memory->read(m_pc + 1)); m_pc += 2; };
-	m_opcode_mat[0x1][0x0e] = [this](){ set_E(m_memory->read(m_pc + 1)); m_pc += 2; };
-	m_opcode_mat[0x2][0x0e] = [this](){ set_L(m_memory->read(m_pc + 1)); m_pc += 2; };
-	m_opcode_mat[0x3][0x0e] = [this](){ set_A(m_memory->read(m_pc + 1)); m_pc += 2; };
-	m_opcode_mat[0x3][0x06] = [this](){ m_memory->write(get_HL(), m_memory->read(m_pc + 1)); m_pc += 2; };
+	m_opcode_mat[0x0][0x6] = [this](){ set_B(pc_get_byte()); };
+	m_opcode_mat[0x1][0x6] = [this](){ set_D(pc_get_byte()); };
+	m_opcode_mat[0x2][0x6] = [this](){ set_H(pc_get_byte()); };
+	m_opcode_mat[0x0][0xe] = [this](){ set_C(pc_get_byte()); };
+	m_opcode_mat[0x1][0xe] = [this](){ set_E(pc_get_byte()); };
+	m_opcode_mat[0x2][0xe] = [this](){ set_L(pc_get_byte()); };
+	m_opcode_mat[0x3][0xe] = [this](){ set_A(pc_get_byte()); };
+	m_opcode_mat[0x3][0x6] = [this](){ m_memory->write(get_HL(), pc_get_byte()); };
+	m_opcode_mat[0xf][0xa] = [this](){ set_A(m_memory->read(pc_get_word())); };
 
 };
 
 void Gb_core::build_alu(){
 	// opcodes mappings for subgrid [0x80, 0xbf]
 	for(int j = 0; j <= 7; j++){
-		m_opcode_mat[8][j] = [this](){
-			auto opcode = m_memory->read(m_pc);
-			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		m_opcode_mat[8][j] = [this, j](){
+			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
 			x8_alu_add(r2);
 		};
 	};
 
 	for(int j = 8; j <= 0xf; j++){
-		m_opcode_mat[8][j] = [this](){
-			auto opcode = m_memory->read(m_pc);
-			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		m_opcode_mat[8][j] = [this, j](){
+			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
 			x8_alu_adc(r2);
 		};
 	};
 
 	for(int j = 0; j <= 7; j++){
-		m_opcode_mat[9][j] = [this](){
-			auto opcode = m_memory->read(m_pc);
-			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		m_opcode_mat[9][j] = [this, j](){
+			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
 			x8_alu_sub(r2);
 		};
 	};
 
 	for(int j = 8; j <= 0xf; j++){
-		m_opcode_mat[9][j] = [this](){
-			auto opcode = m_memory->read(m_pc);
-			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		m_opcode_mat[9][j] = [this, j](){
+			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
 			x8_alu_sbc(r2);
 		};
 	};
 
 	for(int j = 0; j <= 7; j++){
-		m_opcode_mat[0xa][j] = [this](){
-			auto opcode = m_memory->read(m_pc);
-			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		m_opcode_mat[0xa][j] = [this, j](){
+			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
 			x8_alu_and(r2);
 		};
 	};
 
 	for(int j = 8; j <= 0xf; j++){
-		m_opcode_mat[0xa][j] = [this](){
-			auto opcode = m_memory->read(m_pc);
-			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		m_opcode_mat[0xa][j] = [this, j](){
+			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
 			x8_alu_xor(r2);
 		};
 	};
 
 	for(int j = 0; j <= 7; j++){
-		m_opcode_mat[0xb][j] = [this](){
-			auto opcode = m_memory->read(m_pc);
-			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		m_opcode_mat[0xb][j] = [this, j](){
+			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
 			x8_alu_or(r2);
 		};
 	};
 
 	for(int j = 8; j <= 0xf; j++){
-		m_opcode_mat[0xb][j] = [this](){
-			auto opcode = m_memory->read(m_pc);
-			auto r2 = m_reg_rmap[static_cast<reg_order>((opcode & 0x0f) % 8)]();
+		m_opcode_mat[0xb][j] = [this, j](){
+			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
 			x8_alu_cp(r2);
 		};
 	};
 
 	// incs and decs mappings
 	for(int opcode = 0x04; opcode <= 0x34; opcode += 0x10){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
-			auto opcode = m_memory->read(m_pc);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this, opcode](){
 			x8_alu_inc(static_cast<reg_order>((row(opcode) * 2)));
 		};
 	}
 
 	for(int opcode = 0x0c; opcode <= 0x3c; opcode += 0x10){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
-			auto opcode = m_memory->read(m_pc);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this, opcode](){
 			x8_alu_inc(static_cast<reg_order>((row(opcode) * 2) + 1));
 		};
 	}
 
 	for(int opcode = 0x05; opcode <= 0x35; opcode += 0x10){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
-			auto opcode = m_memory->read(m_pc);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this, opcode](){
 			x8_alu_dec(static_cast<reg_order>((row(opcode) * 2)));
 		};
 	}
 
 	for(int opcode = 0x0d; opcode <= 0x3d; opcode += 0x10){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this](){
-			auto opcode = m_memory->read(m_pc);
+		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this, opcode](){
 			x8_alu_dec(static_cast<reg_order>((row(opcode) * 2) + 1));
 		};
 	}
 
 	// alu misc opcode mappings
-	m_opcode_mat[0xc][0x6] = [this](){ x8_alu_add(m_memory->read(++m_pc)); };
-	m_opcode_mat[0xd][0x6] = [this](){ x8_alu_sub(m_memory->read(++m_pc)); };
-	m_opcode_mat[0xe][0x6] = [this](){ x8_alu_and(m_memory->read(++m_pc)); };
-	m_opcode_mat[0xf][0x6] = [this](){ x8_alu_or(m_memory->read(++m_pc)); };
+	m_opcode_mat[0xc][0x6] = [this](){ x8_alu_add(pc_get_byte()); };
+	m_opcode_mat[0xd][0x6] = [this](){ x8_alu_sub(pc_get_byte()); };
+	m_opcode_mat[0xe][0x6] = [this](){ x8_alu_and(pc_get_byte()); };
+	m_opcode_mat[0xf][0x6] = [this](){ x8_alu_or(pc_get_byte()); };
 
-	m_opcode_mat[0xc][0xe] = [this](){ x8_alu_adc(m_memory->read(++m_pc)); };
-	m_opcode_mat[0xd][0xe] = [this](){ x8_alu_sbc(m_memory->read(++m_pc)); };
-	m_opcode_mat[0xe][0xe] = [this](){ x8_alu_xor(m_memory->read(++m_pc)); };
-	m_opcode_mat[0xf][0xe] = [this](){ x8_alu_cp(m_memory->read(++m_pc)); };
+	m_opcode_mat[0xc][0xe] = [this](){ x8_alu_adc(pc_get_byte()); };
+	m_opcode_mat[0xd][0xe] = [this](){ x8_alu_sbc(pc_get_byte()); };
+	m_opcode_mat[0xe][0xe] = [this](){ x8_alu_xor(pc_get_byte()); };
+	m_opcode_mat[0xf][0xe] = [this](){ x8_alu_cp(pc_get_byte()); };
 
 	m_opcode_mat[0x2][0x7] = [this](){ x8_alu_daa(); };
 	m_opcode_mat[0x3][0x7] = [this](){ x8_alu_scf(); };
@@ -396,6 +339,7 @@ void Gb_core::emulate_cycles(int n){
 		log();
 		auto opcode = m_memory->read(m_pc);
 		auto opcode_handler = m_opcode_mat[ROW(opcode)][COL(opcode)];
+		m_pc++;
 		if(opcode_handler != nullptr){
 			opcode_handler();
 		}else{
@@ -405,13 +349,10 @@ void Gb_core::emulate_cycles(int n){
 	}
 };
 
-void Gb_core::jmp_nn(){
-	m_pc++;
-	WORD nn = (m_memory->read(m_pc + 1) << 8) | m_memory->read(m_pc);
-	m_pc = nn;
-};
+void Gb_core::jmp_nn(){ m_pc = pc_get_word();};
 
 BYTE Gb_core::stack_pop(){ return m_memory->read(++m_sp); };
+
 void Gb_core::stack_push(BYTE value){ m_memory->write(m_sp--, value); };
 
 void Gb_core::set_flag(Gb_core::flag f, bool set){
@@ -429,7 +370,6 @@ void Gb_core::x8_alu_add(BYTE r2){
 	set_flag(flag::ZERO, static_cast<BYTE>(r1 + r2) == 0);
 
 	set_A(r1 + r2);
-	m_pc++;
 };
 
 void Gb_core::x8_alu_adc(BYTE r2){
@@ -440,8 +380,6 @@ void Gb_core::x8_alu_adc(BYTE r2){
 	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff));
 	set_flag(flag::ZERO, r1 + r2 + c_flag == 0);
 	set_A(r1 + r2 + c_flag);
-
-	m_pc++;
 };
 
 void Gb_core::x8_alu_sub(BYTE r2){
@@ -453,7 +391,6 @@ void Gb_core::x8_alu_sub(BYTE r2){
 	set_flag(flag::CARRY, r1 < r2);
 
 	set_A(r1 - r2);
-	m_pc++;
 };
 
 void Gb_core::x8_alu_sbc(BYTE r2){
@@ -468,7 +405,6 @@ void Gb_core::x8_alu_sbc(BYTE r2){
 	set_flag(flag::ZERO, (r1 - (r2 + c_flag) == 0));
 
 	set_A(r1 - (r2 + c_flag));
-	m_pc++;
 };
 
 void Gb_core::x8_alu_and(BYTE r2){
@@ -480,7 +416,6 @@ void Gb_core::x8_alu_and(BYTE r2){
 	set_flag(flag::SUBS, false);
 
 	set_A(res);
-	m_pc++;
 };
 
 void Gb_core::x8_alu_xor(BYTE r2){
@@ -491,7 +426,6 @@ void Gb_core::x8_alu_xor(BYTE r2){
 	set_flag(flag::SUBS, false);
 
 	set_A(res);
-	m_pc++;
 };
 
 void Gb_core::x8_alu_or(BYTE r2){
@@ -503,7 +437,6 @@ void Gb_core::x8_alu_or(BYTE r2){
 	set_flag(flag::SUBS, false);
 
 	set_A(res);
-	m_pc++;
 };
 
 
@@ -514,8 +447,6 @@ void Gb_core::x8_alu_cp(BYTE r2){
 	set_flag(flag::ZERO, a == r2);
 	set_flag(flag::HALF_CARRY, ((a & 0x0f) - (r2 & 0x0f) < 0));
 	set_flag(flag::CARRY, a < r2);
-
-	m_pc++;
 };
 
 void Gb_core::x8_alu_inc(reg_order n){
@@ -525,8 +456,6 @@ void Gb_core::x8_alu_inc(reg_order n){
 	set_flag(flag::ZERO, res == 0);
 	set_flag(flag::SUBS, false);
 	set_flag(flag::HALF_CARRY, ((res & 0x0f) == 0x00));
-
-	m_pc++;
 };
 
 void Gb_core::x8_alu_dec(reg_order n){
@@ -535,7 +464,6 @@ void Gb_core::x8_alu_dec(reg_order n){
 	set_flag(flag::ZERO, res == 0);
 	set_flag(flag::SUBS, true);
 	set_flag(flag::HALF_CARRY, ((res & 0x0f) == 0x0f));
-	m_pc++;
 };
 
 void Gb_core::x8_alu_daa(){
@@ -560,9 +488,8 @@ void Gb_core::x8_alu_daa(){
 	
 	set_flag(flag::ZERO, res == 0);
 	set_flag(flag::HALF_CARRY, false);
-	set_A(res);
 
-	m_pc++;
+	set_A(res);
 };
 
 void Gb_core::x8_alu_cpl(){
@@ -590,9 +517,8 @@ void Gb_core::ctrl_return(){
 
 void Gb_core::ctrl_call(bool cond){
 	if(cond){
-		m_pc++;
-		BYTE upper = m_memory->read(m_pc++);
-		BYTE lower = m_memory->read(m_pc++);
+		BYTE upper = pc_get_byte();
+		BYTE lower = pc_get_byte();
 
 		stack_push(get_upper(m_pc));
 		stack_push(get_lower(m_pc));
@@ -600,18 +526,17 @@ void Gb_core::ctrl_call(bool cond){
 		WORD jmp_addr = upper | (lower << 8);
 		m_pc = jmp_addr;
 	}else{
-		m_pc += 3;
+		m_pc += 2;
 	}
 
 };
 
 void Gb_core::ctrl_jr(bool cond){
-	auto offset2 = static_cast<SIGNED_BYTE>(m_memory->read(m_pc + 1));
 	if(cond){
-		auto offset = static_cast<SIGNED_BYTE>(m_memory->read(m_pc + 1));
-		m_pc += offset + 2;
+		auto offset = static_cast<SIGNED_BYTE>(pc_get_byte());
+		m_pc += offset;
 	}else{
-		m_pc += 2;
+		m_pc += 1;
 	}
 };
 
@@ -620,8 +545,8 @@ void Gb_core::ctrl_rst(const WORD offset){
 	m_pc = offset;
 };
 
-void Gb_core::x16_alu_inc(WORD& rr){ rr++; m_pc++;};
-void Gb_core::x16_alu_dec(WORD& rr){ rr++; m_pc++;};
+void Gb_core::x16_alu_inc(WORD& rr){ rr++; };
+void Gb_core::x16_alu_dec(WORD& rr){ rr++; };
 
 void Gb_core::x16_alu_add(WORD rr){
 	set_flag(flag::SUBS, false);
@@ -632,11 +557,10 @@ void Gb_core::x16_alu_add(WORD rr){
 	set_flag(flag::HALF_CARRY, (((hl & 0xfff) + (rr & 0xfff)) & 0x1000));
 
 	set_HL(hl);
-	m_pc++;
 };
 
 void Gb_core::x16_alu_addsp(){
-	SIGNED_BYTE value = static_cast<SIGNED_BYTE>(m_memory->read(m_pc + 1));
+	SIGNED_BYTE value = static_cast<SIGNED_BYTE>(pc_get_byte());
 
 	set_flag(flag::ZERO, false);
 	set_flag(flag::SUBS, false);
@@ -645,7 +569,12 @@ void Gb_core::x16_alu_addsp(){
 	set_flag(flag::CARRY, (((m_sp & 0xff) + (value & 0xff)) & 0x100));
 
 	m_sp += value;
+};
+
+WORD Gb_core::pc_get_word(){ 
+	WORD value = (m_memory->read(m_pc + 1) << 8) | (m_memory->read(m_pc));
 	m_pc += 2;
+	return value;
 };
 
 void Gb_core::log(){

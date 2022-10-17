@@ -132,6 +132,8 @@ class Gb_core{
 		void stack_push(BYTE value);
 		BYTE stack_pop();
 
+		BYTE pc_get_byte(){ return m_memory->read(m_pc++); };
+		WORD pc_get_word();
 
 	private:
 		enum reg16{
