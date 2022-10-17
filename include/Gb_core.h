@@ -36,6 +36,13 @@ class Gb_core{
 			HALF_CARRY = 5,
 			CARRY = 4
 		};
+		enum intrp{
+			VBLANK = 0,
+			LCD,
+			TIMER,
+			SERIAL,
+			JOYPAD
+		};
 	public:
 		Gb_core() = default;
 		Gb_core(Mem_mu * memory);
@@ -139,6 +146,9 @@ class Gb_core{
 
 		BYTE srl(BYTE r);
 		BYTE rr(BYTE r);
+
+		void call_interrupt(intrp i);
+		void handle_interrupts();
 	private:
 		enum reg16{
 			BC = 0,
@@ -159,4 +169,5 @@ class Gb_core{
 		std::map<int, std::function<BYTE(void)>> m_reg_rmap;
 		std::map<int, std::function<BYTE(BYTE)>> m_reg_wmap;
 		std::map<int, std::function<WORD&(void)>> m_reg16_map;
+		std::map<intrp, WORD> m_intrp_addr;
 };

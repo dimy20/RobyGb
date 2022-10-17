@@ -363,6 +363,13 @@ void Gb_core::init(){
 	build_cb_mat();
 	init_registers();
 
+
+	m_intrp_addr[intrp::VBLANK] = 0x40;
+	m_intrp_addr[intrp::LCD] = 0x48;
+	m_intrp_addr[intrp::TIMER] = 0x50;
+	m_intrp_addr[intrp::SERIAL] = 0x58;
+	m_intrp_addr[intrp::JOYPAD] = 0x60;
+
 	m_opcode_mat[0xc][0xb] = [this](){ // forward opcode to m_cb_mat
 		auto opcode = pc_get_byte();
 		auto op_handler = m_cb_mat[ROW(opcode)][COL(opcode)];
@@ -642,6 +649,38 @@ BYTE Gb_core::rr(BYTE r){
 	set_flag(flag::HALF_CARRY, false);
 
 	return r;
+};
+
+void Gb_core::call_interrupt(intrp i){
+	// two waits are executed first
+	// prevent further interrupts
+	m_interrupts_enabled = false;
+
+	// acknoledge interrupt
+	auto intrp_flag = m_memory->read(IF_ADDR);
+	intrp_flag &= ~(0x1 << i);
+	m_memory->write(IF_ADDR, intrp_flag);
+
+	stack_push(get_lower(m_pc));
+	stack_push(get_upper(m_pc));
+
+	// call interrupt handler
+	assert(m_intrp_addr.find(i) != m_intrp_addr.end());
+	m_pc = m_intrp_addr[i];
+};
+
+void Gb_core::handle_interrupts(){
+	if(m_interrupts_enabled){
+		auto intrp_flag = m_memory->read(IF_ADDR);
+		auto intrp_enbaled = m_memory->read(IE_ADDR);
+		if(intrp_flag == 0) return;
+		for(int i = 0; i < 5; i++){
+			if(((intrp_flag >> i) & 0x1) && ((intrp_enbaled >> i) & 0x1)){
+				call_interrupt(static_cast<intrp>(i));
+			}
+		};
+
+	};
 };
 
 void Gb_core::log(){
