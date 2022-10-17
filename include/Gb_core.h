@@ -136,7 +136,9 @@ class Gb_core{
 		WORD pc_get_word();
 
 		void build_cb_mat();
+
 		BYTE srl(BYTE r);
+		BYTE rr(BYTE r);
 	private:
 		enum reg16{
 			BC = 0,

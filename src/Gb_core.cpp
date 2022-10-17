@@ -324,6 +324,7 @@ void Gb_core::init_registers(){
 };
 
 void Gb_core::build_cb_mat(){
+	// srl
 	m_cb_mat[0x3][0x8] = [this](){ set_B(srl(get_B())); };
 	m_cb_mat[0x3][0x9] = [this](){ set_C(srl(get_C())); };
 	m_cb_mat[0x3][0xa] = [this](){ set_D(srl(get_D())); };
@@ -335,6 +336,21 @@ void Gb_core::build_cb_mat(){
 		m_memory->write(get_HL(), res);
 	};
 	m_cb_mat[0x3][0xf] = [this](){ set_A(srl(get_A())); };
+
+	// rr
+	//
+	m_cb_mat[0x1][0x8] = [this](){ set_B(rr(get_B())); };
+	m_cb_mat[0x1][0x9] = [this](){ set_C(rr(get_C())); };
+	m_cb_mat[0x1][0xa] = [this](){ set_D(rr(get_D())); };
+	m_cb_mat[0x1][0xb] = [this](){ set_E(rr(get_E())); };
+	m_cb_mat[0x1][0xc] = [this](){ set_H(rr(get_H())); };
+	m_cb_mat[0x1][0xd] = [this](){ set_L(rr(get_L())); };
+	m_cb_mat[0x1][0xe] = [this](){
+		auto res = rr(m_memory->read(get_HL()));
+		m_memory->write(get_HL(), res);
+	};
+	m_cb_mat[0x1][0xf] = [this](){ set_A(rr(get_A())); };
+
 };
 
 void Gb_core::init(){
@@ -357,12 +373,15 @@ void Gb_core::init(){
 			exit(1);
 		}
 	};
+
+	// rra
+	m_opcode_mat[0x1][0xf] = [this](){ set_A(rr(get_A())); };
 };
 
 // real cycles not taken into account for now.
 void Gb_core::emulate_cycles(int n){
 	for(int i = 0; i < n; i++){
-		log();
+		//log();
 		auto opcode = pc_get_byte();
 		auto opcode_handler = m_opcode_mat[ROW(opcode)][COL(opcode)];
 		if(opcode_handler != nullptr){
@@ -608,6 +627,20 @@ BYTE Gb_core::srl(BYTE r){
 	set_flag(flag::ZERO, r == 0);
 	set_flag(flag::SUBS, false);
 	set_flag(flag::HALF_CARRY, false);
+	return r;
+};
+
+BYTE Gb_core::rr(BYTE r){
+	auto _0bit = r & 0x1;
+
+	set_flag(flag::CARRY, _0bit);
+
+	r = (r >> 1) | (_0bit << 7);
+
+	set_flag(flag::ZERO, r == 0);
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, false);
+
 	return r;
 };
 
