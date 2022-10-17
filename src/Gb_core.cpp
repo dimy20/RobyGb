@@ -94,7 +94,7 @@ void Gb_core::build_8bit_loads(){
 		};
 	};
 
-	for(int opcode = 0x50; opcode <= 0x47; opcode++){
+	for(int opcode = 0x50; opcode <= 0x57; opcode++){
 		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
 			set_D(m_reg_rmap[opcode % 8]());
 		};
