@@ -4,310 +4,381 @@
 
 Gb_core::Gb_core(Mem_mu * memory) : m_memory(memory) {};
 
-void Gb_core::build_control(){
+void Gb_core::make_mappings(){
+	// ld b, r
+	opcode_map(0x40, [this](){ set_B(get_B()); } );
+	opcode_map(0x41, [this](){ set_B(get_C()); } );
+	opcode_map(0x42, [this](){ set_B(get_D()); } );
+	opcode_map(0x43, [this](){ set_B(get_E()); } );
+	opcode_map(0x44, [this](){ set_B(get_H()); } );
+	opcode_map(0x45, [this](){ set_B(get_L()); } );
+	opcode_map(0x46, [this](){ set_B(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x47, [this](){ set_B(get_A()); } );
+
+	// ld c, r
+	opcode_map(0x48, [this](){ set_C(get_B()); } );
+	opcode_map(0x49, [this](){ set_C(get_C()); } );
+	opcode_map(0x4a, [this](){ set_C(get_D()); } );
+	opcode_map(0x4b, [this](){ set_C(get_E()); } );
+	opcode_map(0x4c, [this](){ set_C(get_H()); } );
+	opcode_map(0x4d, [this](){ set_C(get_L()); } );
+	opcode_map(0x4e, [this](){ set_C(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x4f, [this](){ set_C(get_A()); } );
+
+	// ld d, r
+	opcode_map(0x50, [this](){ set_D(get_B()); } );
+	opcode_map(0x51, [this](){ set_D(get_C()); } );
+	opcode_map(0x52, [this](){ set_D(get_D()); } );
+	opcode_map(0x53, [this](){ set_D(get_E()); } );
+	opcode_map(0x54, [this](){ set_D(get_H()); } );
+	opcode_map(0x55, [this](){ set_D(get_L()); } );
+	opcode_map(0x56, [this](){ set_D(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x57, [this](){ set_D(get_A()); } );
+
+	// ld e, r
+	opcode_map(0x58, [this](){ set_E(get_B()); } );
+	opcode_map(0x59, [this](){ set_E(get_C()); } );
+	opcode_map(0x5a, [this](){ set_E(get_D()); } );
+	opcode_map(0x5b, [this](){ set_E(get_E()); } );
+	opcode_map(0x5c, [this](){ set_E(get_H()); } );
+	opcode_map(0x5d, [this](){ set_E(get_L()); } );
+	opcode_map(0x5e, [this](){ set_E(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x5f, [this](){ set_E(get_A()); } );
+
+	// ld h, r
+	opcode_map(0x60, [this](){ set_H(get_B()); } );
+	opcode_map(0x61, [this](){ set_H(get_C()); } );
+	opcode_map(0x62, [this](){ set_H(get_D()); } );
+	opcode_map(0x63, [this](){ set_H(get_E()); } );
+	opcode_map(0x64, [this](){ set_H(get_H()); } );
+	opcode_map(0x65, [this](){ set_H(get_L()); } );
+	opcode_map(0x66, [this](){ set_H(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x67, [this](){ set_H(get_A()); } );
+
+	// ld l, r
+	opcode_map(0x68, [this](){ set_L(get_B()); });
+	opcode_map(0x69, [this](){ set_L(get_C()); });
+	opcode_map(0x6a, [this](){ set_L(get_D()); });
+	opcode_map(0x6b, [this](){ set_L(get_E()); });
+	opcode_map(0x6c, [this](){ set_L(get_H()); });
+	opcode_map(0x6d, [this](){ set_L(get_L()); });
+	opcode_map(0x6e, [this](){ set_L(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x6f, [this](){ set_L(get_A()); });
+
+	//ld [hl], r
+	opcode_map(0x70, [this](){ m_memory->write(get_HL(), get_B()); m_cycles++; } );
+	opcode_map(0x71, [this](){ m_memory->write(get_HL(), get_C()); m_cycles++; } );
+	opcode_map(0x72, [this](){ m_memory->write(get_HL(), get_D()); m_cycles++; } );
+	opcode_map(0x73, [this](){ m_memory->write(get_HL(), get_E()); m_cycles++; } );
+	opcode_map(0x74, [this](){ m_memory->write(get_HL(), get_H()); m_cycles++; } );
+	opcode_map(0x75, [this](){ m_memory->write(get_HL(), get_L()); m_cycles++; } );
+	opcode_map(0x76, [this](){ while(1){}; });
+	opcode_map(0x77, [this](){ m_memory->write(get_HL(), get_A()); m_cycles++;} );
+
+	// ld a, r
+	opcode_map(0x78, [this](){ set_A(get_B()); });
+	opcode_map(0x79, [this](){ set_A(get_C()); });
+	opcode_map(0x7a, [this](){ set_A(get_D()); });
+	opcode_map(0x7b, [this](){ set_A(get_E()); });
+	opcode_map(0x7c, [this](){ set_A(get_H()); });
+	opcode_map(0x7d, [this](){ set_A(get_L()); });
+	opcode_map(0x7e, [this](){ set_A(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x7f, [this](){ set_A(get_A()); });
+
+	// ld [rr], A
+	opcode_map(0x02, [this](){ m_memory->write(get_BC(), get_A()); m_cycles++; } );
+	opcode_map(0x12, [this](){ m_memory->write(get_DE(), get_A()); m_cycles++; } );
+	opcode_map(0x22, [this](){ m_memory->write(get_HL(), get_A()); set_HL(get_HL() + 1); m_cycles++; } );
+	opcode_map(0x32, [this](){ m_memory->write(get_HL(), get_A()); set_HL(get_HL() - 1); m_cycles++; } );
+
+	// ld r, u8
+	opcode_map(0x06, [this](){ set_B(pc_get_byte()); });
+	opcode_map(0x16, [this](){ set_D(pc_get_byte()); });
+	opcode_map(0x26, [this](){ set_H(pc_get_byte()); });
+	opcode_map(0x36, [this](){ m_memory->write(get_HL(), pc_get_byte()); m_cycles++; } );
+
+	// ld r, u8
+	opcode_map(0x0e, [this](){ set_C(pc_get_byte()); });
+	opcode_map(0x1e, [this](){ set_E(pc_get_byte()); });
+	opcode_map(0x2e, [this](){ set_L(pc_get_byte()); });
+	opcode_map(0x3e, [this](){ set_A(pc_get_byte()); });
+
+	opcode_map(0x0a, [this](){ set_A(m_memory->read(get_BC())); m_cycles++; });
+	opcode_map(0x1a, [this](){ set_A(m_memory->read(get_DE())); m_cycles++; });
+	opcode_map(0x2a, [this](){ set_A(m_memory->read(get_HL())); set_HL(get_HL() + 1); m_cycles++; });
+	opcode_map(0x3a, [this](){ set_A(m_memory->read(get_HL())); set_HL(get_HL() - 1); m_cycles++; });
+
+	opcode_map(0xe0, [this](){ m_memory->write(0xff00 + pc_get_byte(), get_A()); });
+	opcode_map(0xe2, [this](){ m_memory->write(0xff00 + get_C(), get_A()); });
+	opcode_map(0xf0, [this](){ set_A(m_memory->read(0xff00 + pc_get_byte())); });
+	opcode_map(0xf2, [this](){ set_A(m_memory->read(0xff00 + get_C())); });
+
+	opcode_map(0xea, [this](){ m_memory->write(pc_get_word(), get_A()); });
+	opcode_map(0xfa, [this](){ set_A(m_memory->read(pc_get_word())); });
+
+
+	// 16 bit loads
+	opcode_map(0x01, [this](){ set_BC(pc_get_word()); });
+	opcode_map(0x11, [this](){ set_DE(pc_get_word()); });
+	opcode_map(0x21, [this](){ set_HL(pc_get_word()); });
+	opcode_map(0x31, [this](){ m_sp = pc_get_word(); });
+	opcode_map(0x08, [this](){ 
+			auto addr = pc_get_word();
+			m_memory->write(addr, get_lower(m_sp));
+			m_memory->write(addr + 1, get_upper(m_sp));
+	});
+
+	// stack pops
+	opcode_map(0xc1, [this](){ set_C(stack_pop()); set_B(stack_pop()); });
+	opcode_map(0xd1, [this](){ set_E(stack_pop()); set_D(stack_pop()); });
+	opcode_map(0xe1, [this](){ set_L(stack_pop()); set_H(stack_pop()); });
+	opcode_map(0xf1, [this](){ set_F(stack_pop() & 0xf0); set_A(stack_pop()); });
+
+	// stack pushes
+	opcode_map(0xc5, [this](){ stack_push(get_B()); stack_push(get_C()); });
+	opcode_map(0xd5, [this](){ stack_push(get_D()); stack_push(get_E()); });
+	opcode_map(0xe5, [this](){ stack_push(get_H()); stack_push(get_L()); });
+	opcode_map(0xf5, [this](){ stack_push(get_A()); stack_push(get_F()); });
+
+	opcode_map(0xf9, [this](){ m_sp = get_HL(); });
+
+	// CONTROL
+	// jr
+	opcode_map(0x18, [this](){ ctrl_jr(true); });
+	opcode_map(0x28, [this](){ ctrl_jr(get_flag(flag::ZERO)); });
+	opcode_map(0x38, [this](){ ctrl_jr(get_flag(flag::CARRY)); });
+	opcode_map(0x20, [this](){ ctrl_jr(!get_flag(flag::ZERO)); });
+	opcode_map(0x30, [this](){ ctrl_jr(!get_flag(flag::CARRY)); });
+
 	// returns
-	m_opcode_mat[0x0][0x0] = [this](){ return; };
-	m_opcode_mat[0xc][0x9] = [this](){ ctrl_return(); };
-	m_opcode_mat[0xc][0x0] = [this](){ if(!get_flag(flag::ZERO)) ctrl_return(); };
-	m_opcode_mat[0xc][0x8] = [this](){ if(get_flag(flag::ZERO)) ctrl_return(); };
-	m_opcode_mat[0xd][0x0] = [this](){ if(!get_flag(flag::CARRY)) ctrl_return(); };
-	m_opcode_mat[0xd][0x4] = [this](){ if(get_flag(flag::CARRY)) ctrl_return(); };
+
+	opcode_map(0x0, [this](){ return; });
+	opcode_map(0xc9, [this](){ ctrl_return(true); });
+	opcode_map(0xc0, [this](){ ctrl_return(!get_flag(flag::ZERO)); });
+	opcode_map(0xc8, [this](){ ctrl_return(get_flag(flag::ZERO)); });
+	opcode_map(0xd0, [this](){ ctrl_return(!get_flag(flag::CARRY)); });
+	opcode_map(0xd8, [this](){ ctrl_return(get_flag(flag::CARRY)); });
+
 	// calls
-	m_opcode_mat[0xc][0xd] = [this](){ ctrl_call(true); };
-	m_opcode_mat[0xc][0xc] = [this](){ ctrl_call(get_flag(flag::ZERO)); };
-	m_opcode_mat[0xc][0x4] = [this](){ ctrl_call(!get_flag(flag::ZERO)); };
-	m_opcode_mat[0xd][0x4] = [this](){ ctrl_call(!get_flag(flag::CARRY)); };
-	m_opcode_mat[0xd][0xc] = [this](){ ctrl_call(get_flag(flag::CARRY)); };
-	// jumps
-	m_opcode_mat[0xc][0x3] = [this](){ jmp_nn(); };
-	m_opcode_mat[0xc][0x2] = [this](){ if(!get_flag(flag::ZERO)) jmp_nn(); };
-	m_opcode_mat[0xc][0xa] = [this](){ if(get_flag(flag::ZERO)) jmp_nn(); };
-	m_opcode_mat[0xd][0xa] = [this](){ if(get_flag(flag::CARRY)) jmp_nn(); };
-	m_opcode_mat[0xd][0x2] = [this](){ if(!get_flag(flag::CARRY)) jmp_nn(); };
-	m_opcode_mat[0xe][0x9] = [this](){ m_pc = m_memory->read(get_HL()); };
-	// jp offset
-	m_opcode_mat[0x1][0x8] = [this](){ ctrl_jr(true); };
-	m_opcode_mat[0x2][0x8] = [this](){ ctrl_jr(get_flag(flag::ZERO)); };
-	m_opcode_mat[0x3][0x8] = [this](){ ctrl_jr(get_flag(flag::CARRY)); };
-	m_opcode_mat[0x2][0x0] = [this](){ ctrl_jr(!get_flag(flag::ZERO)); };
-	m_opcode_mat[0x3][0x0] = [this](){ ctrl_jr(!get_flag(flag::CARRY)); };
-	// ime
-	m_opcode_mat[0xf][0x3] = [this](){ m_interrupts_enabled = false; };
-	m_opcode_mat[0xf][0xb] = [this](){ m_interrupts_enabled = true; };
-	m_opcode_mat[0xd][0x9] = [this](){ m_interrupts_enabled = true; ctrl_return(); };
-	//rst
-	m_opcode_mat[0xc][0x7] = [this]() { ctrl_rst(0x00); };
-	m_opcode_mat[0xd][0x7] = [this]() { ctrl_rst(0x10); };
-	m_opcode_mat[0xe][0x7] = [this]() { ctrl_rst(0x20); };
-	m_opcode_mat[0xf][0x7] = [this]() { ctrl_rst(0x30); };
-	m_opcode_mat[0xc][0xf] = [this]() { ctrl_rst(0x08); };
-	m_opcode_mat[0xd][0xf] = [this]() { ctrl_rst(0x18); };
-	m_opcode_mat[0xe][0xf] = [this]() { ctrl_rst(0x28); };
-	m_opcode_mat[0xf][0xf] = [this]() { ctrl_rst(0x38); };
+	
+	opcode_map(0xcd, [this](){ ctrl_call(true); });
+	opcode_map(0xcc, [this](){ ctrl_call(get_flag(flag::ZERO)); });
+	opcode_map(0xc4, [this](){ ctrl_call(!get_flag(flag::ZERO)); });
+	opcode_map(0xd4, [this](){ ctrl_call(!get_flag(flag::CARRY)); });
+	opcode_map(0xdc, [this](){ ctrl_call(get_flag(flag::CARRY)); });
 
-	// x16 alu arithmetic mappings
-	m_opcode_mat[0x0][0x3] = [this]() { set_BC(get_BC() + 1); };
-	m_opcode_mat[0x1][0x3] = [this]() { set_DE(get_DE() + 1); };
-	m_opcode_mat[0x2][0x3] = [this]() { set_HL(get_HL() + 1); };
-	m_opcode_mat[0x3][0x3] = [this]() { m_sp++; };
+	// jp
+	
+	opcode_map(0xc3, [this](){ jmp_nn(true); });
+	opcode_map(0xc2, [this](){ jmp_nn(!get_flag(flag::ZERO)); });
+	opcode_map(0xca, [this](){ jmp_nn(get_flag(flag::ZERO)); });
+	opcode_map(0xda, [this](){ jmp_nn(get_flag(flag::CARRY)); });
+	opcode_map(0xd2, [this](){ jmp_nn(!get_flag(flag::CARRY)); });
+	opcode_map(0xe9, [this](){ m_pc = get_HL(); });
 
-	m_opcode_mat[0x0][0xb] = [this]() { set_BC(get_BC() - 1); };
-	m_opcode_mat[0x1][0xb] = [this]() { set_DE(get_DE() - 1); };
-	m_opcode_mat[0x2][0xb] = [this]() { set_HL(get_HL() - 1); };
-	m_opcode_mat[0x3][0xb] = [this]() { set_BC(get_BC() - 1); };
+	// interrupts
+	opcode_map(0xf3, [this](){ m_interrupts_enabled = false; } );
+	opcode_map(0xfb, [this](){ m_interrupts_enabled = true; } );
+	opcode_map(0xd9, [this](){ m_interrupts_enabled = true; ctrl_return(true); m_cycles--; } );
 
-	m_opcode_mat[0x0][0x9] = [this]() { x16_alu_add(get_BC()); };
-	m_opcode_mat[0x1][0x9] = [this]() { x16_alu_add(get_DE()); };
-	m_opcode_mat[0x2][0x9] = [this]() { x16_alu_add(get_HL()); };
-	m_opcode_mat[0x3][0x9] = [this]() { x16_alu_add(m_sp); };
+	// rst
+	opcode_map(0xc7, [this]() { ctrl_rst(0x00); } );
+	opcode_map(0xd7, [this]() { ctrl_rst(0x10); } );
+	opcode_map(0xe7, [this]() { ctrl_rst(0x20); } );
+	opcode_map(0xf7, [this]() { ctrl_rst(0x30); } );
+	opcode_map(0xcf, [this]() { ctrl_rst(0x08); } );
+	opcode_map(0xdf, [this]() { ctrl_rst(0x18); } );
+	opcode_map(0xef, [this]() { ctrl_rst(0x28); } );
+	opcode_map(0xff, [this]() { ctrl_rst(0x38); } );
 
-	m_opcode_mat[0xe][0x8] = [this]() { x16_alu_addsp(); };
-	m_opcode_mat[0xf][0x8] = [this]() { x16_alu_addsp(); set_HL(m_sp); };
+	// x16_alu
+	opcode_map(0x03, [this]() { set_BC(get_BC() + 1); m_cycles++; });
+	opcode_map(0x13, [this]() { set_DE(get_DE() + 1); m_cycles++; });
+	opcode_map(0x23, [this]() { set_HL(get_HL() + 1); m_cycles++; });
+	opcode_map(0x33, [this]() { m_sp++; m_cycles += 2; });
+
+	opcode_map(0x0b, [this]() { set_BC(get_BC() - 1); m_cycles++; });
+	opcode_map(0x1b, [this]() { set_DE(get_DE() - 1); m_cycles++; });
+	opcode_map(0x2b, [this]() { set_HL(get_HL() - 1); m_cycles++; });
+	opcode_map(0x3b, [this]() { set_BC(get_BC() - 1); m_cycles++; });
+
+	opcode_map(0x09, [this]() { x16_alu_add(get_BC()); });
+	opcode_map(0x19, [this]() { x16_alu_add(get_DE()); });
+	opcode_map(0x29, [this]() { x16_alu_add(get_HL()); });
+	opcode_map(0x39, [this]() { x16_alu_add(m_sp); });
+
+	opcode_map(0xe8, [this]() { x16_alu_addsp(); });
+	opcode_map(0xf8, [this]() { x16_alu_addsp(); set_HL(m_sp); m_cycles--; });
+
+	// x8/alu
+	// add r
+	opcode_map(0x80, [this](){ x8_alu_add(get_B()); });
+	opcode_map(0x81, [this](){ x8_alu_add(get_C()); });
+	opcode_map(0x82, [this](){ x8_alu_add(get_D()); });
+	opcode_map(0x83, [this](){ x8_alu_add(get_E()); });
+	opcode_map(0x84, [this](){ x8_alu_add(get_H()); });
+	opcode_map(0x85, [this](){ x8_alu_add(get_L()); });
+	opcode_map(0x86, [this](){ x8_alu_add(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x87, [this](){ x8_alu_add(get_A()); });
+
+	// adc r
+	opcode_map(0x88, [this](){ x8_alu_adc(get_B()); });
+	opcode_map(0x89, [this](){ x8_alu_adc(get_C()); });
+	opcode_map(0x8a, [this](){ x8_alu_adc(get_D()); });
+	opcode_map(0x8b, [this](){ x8_alu_adc(get_E()); });
+	opcode_map(0x8c, [this](){ x8_alu_adc(get_H()); });
+	opcode_map(0x8d, [this](){ x8_alu_adc(get_L()); });
+	opcode_map(0x8e, [this](){ x8_alu_adc(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x8f, [this](){ x8_alu_adc(get_A()); });
+
+	// sub r
+	opcode_map(0x90, [this](){ x8_alu_sub(get_B()); });
+	opcode_map(0x91, [this](){ x8_alu_sub(get_C()); });
+	opcode_map(0x92, [this](){ x8_alu_sub(get_D()); });
+	opcode_map(0x93, [this](){ x8_alu_sub(get_E()); });
+	opcode_map(0x94, [this](){ x8_alu_sub(get_H()); });
+	opcode_map(0x95, [this](){ x8_alu_sub(get_L()); });
+	opcode_map(0x96, [this](){ x8_alu_sub(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x97, [this](){ x8_alu_sub(get_A()); });
+
+	// sbc r
+	opcode_map(0x98, [this](){ x8_alu_sbc(get_B()); });
+	opcode_map(0x99, [this](){ x8_alu_sbc(get_C()); });
+	opcode_map(0x9a, [this](){ x8_alu_sbc(get_D()); });
+	opcode_map(0x9b, [this](){ x8_alu_sbc(get_E()); });
+	opcode_map(0x9c, [this](){ x8_alu_sbc(get_H()); });
+	opcode_map(0x9d, [this](){ x8_alu_sbc(get_L()); });
+	opcode_map(0x9e, [this](){ x8_alu_sbc(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0x9f, [this](){ x8_alu_sbc(get_A()); });
+
+	// and r
+	opcode_map(0xa0, [this](){ x8_alu_and(get_B()); });
+	opcode_map(0xa1, [this](){ x8_alu_and(get_C()); });
+	opcode_map(0xa2, [this](){ x8_alu_and(get_D()); });
+	opcode_map(0xa3, [this](){ x8_alu_and(get_E()); });
+	opcode_map(0xa4, [this](){ x8_alu_and(get_H()); });
+	opcode_map(0xa5, [this](){ x8_alu_and(get_L()); });
+	opcode_map(0xa6, [this](){ x8_alu_and(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0xa7, [this](){ x8_alu_and(get_A()); });
+
+	// xor r
+	opcode_map(0xa8, [this](){ x8_alu_xor(get_B()); });
+	opcode_map(0xa9, [this](){ x8_alu_xor(get_C()); });
+	opcode_map(0xaa, [this](){ x8_alu_xor(get_D()); });
+	opcode_map(0xab, [this](){ x8_alu_xor(get_E()); });
+	opcode_map(0xac, [this](){ x8_alu_xor(get_H()); });
+	opcode_map(0xad, [this](){ x8_alu_xor(get_L()); });
+	opcode_map(0xae, [this](){ x8_alu_xor(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0xaf, [this](){ x8_alu_xor(get_A()); });
+
+	// or r
+	opcode_map(0xb0, [this](){ x8_alu_or(get_B()); });
+	opcode_map(0xb1, [this](){ x8_alu_or(get_C()); });
+	opcode_map(0xb2, [this](){ x8_alu_or(get_D()); });
+	opcode_map(0xb3, [this](){ x8_alu_or(get_E()); });
+	opcode_map(0xb4, [this](){ x8_alu_or(get_H()); });
+	opcode_map(0xb5, [this](){ x8_alu_or(get_L()); });
+	opcode_map(0xb6, [this](){ x8_alu_or(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0xb7, [this](){ x8_alu_or(get_A()); });
+
+	// cp r
+	opcode_map(0xb8, [this](){ x8_alu_cp(get_B()); });
+	opcode_map(0xb9, [this](){ x8_alu_cp(get_C()); });
+	opcode_map(0xba, [this](){ x8_alu_cp(get_D()); });
+	opcode_map(0xbb, [this](){ x8_alu_cp(get_E()); });
+	opcode_map(0xbc, [this](){ x8_alu_cp(get_H()); });
+	opcode_map(0xbd, [this](){ x8_alu_cp(get_L()); });
+	opcode_map(0xbe, [this](){ x8_alu_cp(m_memory->read(get_HL())); m_cycles++; });
+	opcode_map(0xbf, [this](){ x8_alu_cp(get_A()); });
+
+	// inc
+	opcode_map(0x04, [this](){ set_B(x8_alu_inc(get_B())); });
+	opcode_map(0x14, [this](){ set_D(x8_alu_inc(get_D())); });
+	opcode_map(0x24, [this](){ set_H(x8_alu_inc(get_H())); });
+	opcode_map(0x34, [this](){ 
+		BYTE value = m_memory->read(get_HL());
+		m_memory->write(get_HL(), x8_alu_inc(value));
+		m_cycles += 2;
+	});
+
+	opcode_map(0x0c, [this](){ set_C(x8_alu_inc(get_C())); });
+	opcode_map(0x1c, [this](){ set_E(x8_alu_inc(get_E())); });
+	opcode_map(0x2c, [this](){ set_L(x8_alu_inc(get_L())); });
+	opcode_map(0x3c, [this](){ set_A(x8_alu_inc(get_A())); });
+
+	// dec
+	opcode_map(0x05, [this](){ set_B(x8_alu_dec(get_B())); });
+	opcode_map(0x15, [this](){ set_D(x8_alu_dec(get_D())); });
+	opcode_map(0x25, [this](){ set_H(x8_alu_dec(get_H())); });
+	opcode_map(0x35, [this](){ 
+		BYTE value = m_memory->read(get_HL());
+		m_memory->write(get_HL(), x8_alu_dec(value));
+		m_cycles += 2;
+	});
+
+	opcode_map(0x0d, [this](){ set_C(x8_alu_dec(get_C())); });
+	opcode_map(0x1d, [this](){ set_E(x8_alu_dec(get_E())); });
+	opcode_map(0x2d, [this](){ set_L(x8_alu_dec(get_L())); });
+	opcode_map(0x3d, [this](){ set_A(x8_alu_dec(get_A())); });
+
+	// misc alu
+
+	opcode_map(0xc6, [this](){ x8_alu_add(pc_get_byte()); });
+	opcode_map(0xd6, [this](){ x8_alu_sub(pc_get_byte()); });
+	opcode_map(0xe6, [this](){ x8_alu_and(pc_get_byte()); });
+	opcode_map(0xf6, [this](){ x8_alu_or(pc_get_byte()); });
+
+	opcode_map(0xce, [this](){ x8_alu_adc(pc_get_byte()); });
+	opcode_map(0xde, [this](){ x8_alu_sbc(pc_get_byte()); });
+	opcode_map(0xee, [this](){ x8_alu_xor(pc_get_byte()); });
+	opcode_map(0xfe, [this](){ x8_alu_cp(pc_get_byte()); });
+
+	opcode_map(0x27, [this](){ x8_alu_daa(); });
+	opcode_map(0x37, [this](){ x8_alu_scf(); });
+	opcode_map(0x2f, [this](){ x8_alu_cpl(); });
+	opcode_map(0x3f, [this](){ x8_alu_ccf(); });
+
+	// x8 rsb
+	opcode_map(0x1f, [this](){ rra(); });
+	opcode_map(0xcb, [this](){ // forward opcode to m_cb_mat
+		auto opcode = pc_get_byte();
+		auto op_handler = m_cb_mat[ROW(opcode)][COL(opcode)];
+		if(op_handler != nullptr){
+			op_handler();
+		}else{
+			std::cerr << "Unknown cb opcode : " << std::hex << (int)opcode << std::endl;
+			exit(1);
+		}
+	});
+
 };
 
-void Gb_core::build_16bit_loads(){
-	// 0x120d;
-	m_opcode_mat[row(0xc1)][col(0xc1)] = [this](){ set_B(stack_pop()); set_C(stack_pop()); };
-	m_opcode_mat[row(0xd1)][col(0xd1)] = [this](){ set_D(stack_pop()); set_E(stack_pop()); };
-	m_opcode_mat[row(0xe1)][col(0xe1)] = [this](){ set_H(stack_pop()); set_L(stack_pop()); };
-	m_opcode_mat[row(0xf1)][col(0xf1)] = [this](){ set_A(stack_pop()); set_F(stack_pop()); };
-	m_opcode_mat[row(0xc5)][col(0xc5)] = [this](){ stack_push(get_C()); stack_push(get_B()); };
-	m_opcode_mat[row(0xd5)][col(0xd5)] = [this](){ stack_push(get_E()); stack_push(get_D()); };
-	m_opcode_mat[row(0xe5)][col(0xe5)] = [this](){ stack_push(get_L()); stack_push(get_H()); };
-	m_opcode_mat[row(0xf5)][col(0xf5)] = [this](){ stack_push(get_F()); stack_push(get_A()); };
-	m_opcode_mat[0x0][0x1] = [this](){ set_BC(pc_get_word()); };
-	m_opcode_mat[0x1][0x1] = [this](){ set_DE(pc_get_word()); };
-	m_opcode_mat[0x2][0x1] = [this](){ set_HL(pc_get_word()); };
-	m_opcode_mat[0x3][0x1] = [this](){ m_sp = pc_get_word(); };
-};
+void Gb_core::make_cb_mappings(){
+	// srl
+	opcode_cbmap(0x38, [this](){ set_B(srl(get_B())); });
+	opcode_cbmap(0x39, [this](){ set_C(srl(get_C())); });
+	opcode_cbmap(0x3a, [this](){ set_D(srl(get_D())); });
+	opcode_cbmap(0x3b, [this](){ set_E(srl(get_E())); });
+	opcode_cbmap(0x3c, [this](){ set_H(srl(get_H())); });
+	opcode_cbmap(0x3d, [this](){ set_L(srl(get_L())); });
+	opcode_cbmap(0x3e, [this](){ 
+		auto res = srl(m_memory->read(get_HL()));
+		m_memory->write(get_HL(), res);
+	});
+	opcode_cbmap(0x3f, [this](){ set_A(srl(get_A())); });
 
-void Gb_core::build_8bit_loads(){
-	for(int opcode = 0x40; opcode <= 0x47; opcode++){
-		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
-			set_B(m_reg_rmap[opcode % 8]());
-		};
-	};
-
-	for(int opcode = 0x48; opcode <= 0x4f; opcode++){
-		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
-			set_C(m_reg_rmap[opcode % 8]());
-		};
-	};
-
-	for(int opcode = 0x50; opcode <= 0x57; opcode++){
-		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
-			set_D(m_reg_rmap[opcode % 8]());
-		};
-	};
-
-	for(int opcode = 0x58; opcode <= 0x5f; opcode++){
-		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
-			set_E(m_reg_rmap[opcode % 8]());
-		};
-	};
-
-	for(int opcode = 0x60; opcode <= 0x67; opcode++){
-		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
-			set_H(m_reg_rmap[opcode % 8]());
-		};
-	}
-
-	for(int opcode = 0x68; opcode <= 0x6f; opcode++){
-		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
-			set_L(m_reg_rmap[opcode % 8]());
-		};
-	}
-
-	for(int opcode = 0x70; opcode <= 0x77; opcode++){
-		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
-			m_memory->write(get_HL(), m_reg_rmap[opcode % 8]());
-		};
-	}
-
-	for(int opcode = 0x78; opcode <= 0x7f; opcode++){
-		m_opcode_mat[row(opcode)][col(opcode)] = [this, opcode](){ 
-			set_A(m_reg_rmap[opcode % 8]());
-		};
-	}
-
-	// 0xff00 loads
-	m_opcode_mat[0xf][0x0] = [this](){ set_A(m_memory->read(0xff00 + pc_get_byte()));};
-	m_opcode_mat[0xe][0x0] = [this](){ m_memory->write(0xff00 + pc_get_byte(), get_A());};
-	m_opcode_mat[0xe][0x2] = [this](){ m_memory->write(0xff00 + get_C(), get_A()); };
-	m_opcode_mat[0xf][0x2] = [this](){ set_A(m_memory->read(0xff00 + get_C())); };
-
-	// ld [xx], A
-	m_opcode_mat[0x0][0x2] = [this](){ m_memory->write(get_BC(), get_A()); };
-	m_opcode_mat[0x1][0x2] = [this](){ m_memory->write(get_DE(), get_A()); };
-
-	m_opcode_mat[0x2][0x2] = [this](){ 
-		m_memory->write(get_HL(), get_A());
-		set_HL(get_HL() + 1);
-	};
-
-	m_opcode_mat[0x3][0x2] = [this](){
-		m_memory->write(get_HL(), get_A());
-		set_HL(get_HL() - 1);
-	};
-
-	m_opcode_mat[0xe][0xa] = [this](){
-		WORD addr = pc_get_word();
-		m_memory->write(addr, get_A());
-	};
-
-	m_opcode_mat[0x0][0xa] = [this](){ set_A(m_memory->read(get_BC())); };
-	m_opcode_mat[0x1][0xa] = [this](){ set_A(m_memory->read(get_DE())); };
-
-	m_opcode_mat[0x2][0xa] = [this](){
-		set_A(m_memory->read(get_HL()));
-		set_HL(get_HL() + 1);
-	};
-
-	m_opcode_mat[0x3][0xa] = [this](){
-		set_A(m_memory->read(get_HL()));
-		set_HL(get_HL() + 1);
-	};
-
-	m_opcode_mat[0x0][0x6] = [this](){ set_B(pc_get_byte()); };
-	m_opcode_mat[0x1][0x6] = [this](){ set_D(pc_get_byte()); };
-	m_opcode_mat[0x2][0x6] = [this](){ set_H(pc_get_byte()); };
-	m_opcode_mat[0x0][0xe] = [this](){ set_C(pc_get_byte()); };
-	m_opcode_mat[0x1][0xe] = [this](){ set_E(pc_get_byte()); };
-	m_opcode_mat[0x2][0xe] = [this](){ set_L(pc_get_byte()); };
-	m_opcode_mat[0x3][0xe] = [this](){ set_A(pc_get_byte()); };
-	m_opcode_mat[0x3][0x6] = [this](){ m_memory->write(get_HL(), pc_get_byte()); };
-	m_opcode_mat[0xf][0xa] = [this](){ set_A(m_memory->read(pc_get_word())); };
-
-};
-
-void Gb_core::build_alu(){
-	// opcodes mappings for subgrid [0x80, 0xbf]
-	for(int j = 0; j <= 7; j++){
-		m_opcode_mat[8][j] = [this, j](){
-			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
-			x8_alu_add(r2);
-		};
-	};
-
-	for(int j = 8; j <= 0xf; j++){
-		m_opcode_mat[8][j] = [this, j](){
-			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
-			x8_alu_adc(r2);
-		};
-	};
-
-	for(int j = 0; j <= 7; j++){
-		m_opcode_mat[9][j] = [this, j](){
-			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
-			x8_alu_sub(r2);
-		};
-	};
-
-	for(int j = 8; j <= 0xf; j++){
-		m_opcode_mat[9][j] = [this, j](){
-			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
-			x8_alu_sbc(r2);
-		};
-	};
-
-	for(int j = 0; j <= 7; j++){
-		m_opcode_mat[0xa][j] = [this, j](){
-			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
-			x8_alu_and(r2);
-		};
-	};
-
-	for(int j = 8; j <= 0xf; j++){
-		m_opcode_mat[0xa][j] = [this, j](){
-			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
-			x8_alu_xor(r2);
-		};
-	};
-
-	for(int j = 0; j <= 7; j++){
-		m_opcode_mat[0xb][j] = [this, j](){
-			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
-			x8_alu_or(r2);
-		};
-	};
-
-	for(int j = 8; j <= 0xf; j++){
-		m_opcode_mat[0xb][j] = [this, j](){
-			auto r2 = m_reg_rmap[static_cast<reg_order>(j % 8)]();
-			x8_alu_cp(r2);
-		};
-	};
-
-	// incs and decs mappings
-	for(int opcode = 0x04; opcode <= 0x34; opcode += 0x10){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this, opcode](){
-			x8_alu_inc(static_cast<reg_order>((row(opcode) * 2)));
-		};
-	}
-
-	for(int opcode = 0x0c; opcode <= 0x3c; opcode += 0x10){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this, opcode](){
-			x8_alu_inc(static_cast<reg_order>((row(opcode) * 2) + 1));
-		};
-	}
-
-	for(int opcode = 0x05; opcode <= 0x35; opcode += 0x10){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this, opcode](){
-			x8_alu_dec(static_cast<reg_order>((row(opcode) * 2)));
-		};
-	}
-
-	for(int opcode = 0x0d; opcode <= 0x3d; opcode += 0x10){
-		m_opcode_mat[ROW(opcode)][COL(opcode)] = [this, opcode](){
-			x8_alu_dec(static_cast<reg_order>((row(opcode) * 2) + 1));
-		};
-	}
-
-	// alu misc opcode mappings
-	m_opcode_mat[0xc][0x6] = [this](){ x8_alu_add(pc_get_byte()); };
-	m_opcode_mat[0xd][0x6] = [this](){ x8_alu_sub(pc_get_byte()); };
-	m_opcode_mat[0xe][0x6] = [this](){ x8_alu_and(pc_get_byte()); };
-	m_opcode_mat[0xf][0x6] = [this](){ x8_alu_or(pc_get_byte()); };
-
-	m_opcode_mat[0xc][0xe] = [this](){ x8_alu_adc(pc_get_byte()); };
-	m_opcode_mat[0xd][0xe] = [this](){ x8_alu_sbc(pc_get_byte()); };
-	m_opcode_mat[0xe][0xe] = [this](){ x8_alu_xor(pc_get_byte()); };
-	m_opcode_mat[0xf][0xe] = [this](){ x8_alu_cp(pc_get_byte()); };
-
-	m_opcode_mat[0x2][0x7] = [this](){ x8_alu_daa(); };
-	m_opcode_mat[0x3][0x7] = [this](){ x8_alu_scf(); };
-	m_opcode_mat[0x2][0xf] = [this](){ x8_alu_cpl(); };
-	m_opcode_mat[0x3][0xf] = [this](){ x8_alu_ccf(); };
-};
-
-void Gb_core::build_registers_rmap(){
-	m_reg_rmap[reg_order::REG_B] = [this]()->BYTE{ return get_B(); };
-	m_reg_rmap[reg_order::REG_C] = [this]()->BYTE{ return get_C(); };
-
-	m_reg_rmap[reg_order::REG_D] = [this]()->BYTE{ return get_D(); };
-	m_reg_rmap[reg_order::REG_E] = [this]()->BYTE{ return get_E(); };
-
-	m_reg_rmap[reg_order::REG_H] = [this]()->BYTE{ return get_H(); };
-	m_reg_rmap[reg_order::REG_L] = [this]()->BYTE{ return get_L(); };
-
-	m_reg_rmap[reg_order::REG_HL] = [this]() ->BYTE{ return m_memory->read(get_HL()); };
-	m_reg_rmap[reg_order::REG_A] = [this]()->BYTE{ return get_A(); };
-};
-
-void Gb_core::build_registers_wmap(){
-	// write map
-	m_reg_wmap[reg_order::REG_B] = [this](BYTE v)->BYTE{ set_B(v); return get_B(); };
-	m_reg_wmap[reg_order::REG_C] = [this](BYTE v)->BYTE{ set_C(v); return get_C(); };
-	m_reg_wmap[reg_order::REG_D] = [this](BYTE v)->BYTE{ set_D(v); return get_D(); };
-
-	m_reg_wmap[reg_order::REG_E] = [this](BYTE v)->BYTE{ set_E(v); return get_E(); };
-	m_reg_wmap[reg_order::REG_H] = [this](BYTE v)->BYTE{ set_H(v); return get_H(); };
-	m_reg_wmap[reg_order::REG_L] = [this](BYTE v)->BYTE{ set_L(v); return get_L(); };
-	m_reg_wmap[reg_order::REG_HL] = [this](BYTE v)->BYTE{
-		m_memory->write(get_HL(), v);
-		return m_memory->read(get_HL());
-	};
-	m_reg_wmap[reg_order::REG_A] = [this](BYTE v)->BYTE{ set_A(v); return get_A(); };
+	//rr
+	opcode_cbmap(0x18, [this](){ set_B(rr(get_B())); });
+	opcode_cbmap(0x19, [this](){ set_C(rr(get_C())); });
+	opcode_cbmap(0x1a, [this](){ set_D(rr(get_D())); });
+	opcode_cbmap(0x1b, [this](){ set_E(rr(get_E())); });
+	opcode_cbmap(0x1c, [this](){ set_H(rr(get_H())); });
+	opcode_cbmap(0x1d, [this](){ set_L(rr(get_L())); });
+	opcode_cbmap(0x1e, [this](){
+		auto res = rr(m_memory->read(get_HL()));
+		m_memory->write(get_HL(), res);
+	});
+	opcode_cbmap(0x1f, [this](){ set_A(rr(get_A())); });
 };
 
 void Gb_core::init_registers(){
@@ -323,100 +394,55 @@ void Gb_core::init_registers(){
 	m_sp = SP_INIT_ADDR;
 };
 
-void Gb_core::build_cb_mat(){
-	// srl
-	m_cb_mat[0x3][0x8] = [this](){ set_B(srl(get_B())); };
-	m_cb_mat[0x3][0x9] = [this](){ set_C(srl(get_C())); };
-	m_cb_mat[0x3][0xa] = [this](){ set_D(srl(get_D())); };
-	m_cb_mat[0x3][0xb] = [this](){ set_E(srl(get_E())); };
-	m_cb_mat[0x3][0xc] = [this](){ set_H(srl(get_H())); };
-	m_cb_mat[0x3][0xd] = [this](){ set_L(srl(get_L())); };
-	m_cb_mat[0x3][0xe] = [this](){ 
-		auto res = srl(m_memory->read(get_HL()));
-		m_memory->write(get_HL(), res);
-	};
-	m_cb_mat[0x3][0xf] = [this](){ set_A(srl(get_A())); };
-
-	// rr
-	//
-	m_cb_mat[0x1][0x8] = [this](){ set_B(rr(get_B())); };
-	m_cb_mat[0x1][0x9] = [this](){ set_C(rr(get_C())); };
-	m_cb_mat[0x1][0xa] = [this](){ set_D(rr(get_D())); };
-	m_cb_mat[0x1][0xb] = [this](){ set_E(rr(get_E())); };
-	m_cb_mat[0x1][0xc] = [this](){ set_H(rr(get_H())); };
-	m_cb_mat[0x1][0xd] = [this](){ set_L(rr(get_L())); };
-	m_cb_mat[0x1][0xe] = [this](){
-		auto res = rr(m_memory->read(get_HL()));
-		m_memory->write(get_HL(), res);
-	};
-	m_cb_mat[0x1][0xf] = [this](){ set_A(rr(get_A())); };
-
-};
-
 void Gb_core::init(){
-	build_alu();
-	build_control();
-	build_registers_rmap();
-	build_registers_wmap();
-	build_8bit_loads();
-	build_16bit_loads();
-	build_cb_mat();
 	init_registers();
-
+	make_mappings();
+	make_cb_mappings();
 
 	m_intrp_addr[intrp::VBLANK] = 0x40;
 	m_intrp_addr[intrp::LCD] = 0x48;
 	m_intrp_addr[intrp::TIMER] = 0x50;
 	m_intrp_addr[intrp::SERIAL] = 0x58;
 	m_intrp_addr[intrp::JOYPAD] = 0x60;
-
-	m_opcode_mat[0xc][0xb] = [this](){ // forward opcode to m_cb_mat
-		auto opcode = pc_get_byte();
-		auto op_handler = m_cb_mat[ROW(opcode)][COL(opcode)];
-		if(op_handler != nullptr){
-			op_handler();
-		}else{
-			std::cerr << "Unknown cb opcode : " << std::hex << (int)opcode << std::endl;
-			exit(1);
-		}
-	};
-
-	// rra
-	m_opcode_mat[0x1][0xf] = [this](){ set_A(rr(get_A())); };
 };
 
 // real cycles not taken into account for now.
-void Gb_core::emulate_cycles(int n){
-	for(int i = 0; i < n; i++){
-		//log();
-		auto opcode = pc_get_byte();
-		auto opcode_handler = m_opcode_mat[ROW(opcode)][COL(opcode)];
-		if(opcode_handler != nullptr){
-			opcode_handler();
-		}else{
-			std::cerr << "Unknown opcode : " << std::hex << (int)opcode << std::endl;
-			exit(1);
-		}
+int Gb_core::execute_instruction(){
+	//log();
+	BYTE opcode = pc_get_byte();
+	m_cycles = 0;
+	auto opcode_handler = m_opcode_mat[ROW(opcode)][COL(opcode)];
+	if(opcode_handler != nullptr){
+		opcode_handler();
+	}else{
+		std::cerr << "Unknown opcode : " << std::hex << (int)opcode << std::endl;
+		exit(1);
 	}
+	return m_cycles * 4;
 };
 
-void Gb_core::jmp_nn(){ m_pc = pc_get_word();};
+void Gb_core::jmp_nn(bool cond){ 
+	if(branch_decision(cond)){
+		m_pc = pc_get_word();
+		return;
+	};
+	m_pc += 2;
+	m_cycles++; // warning
+};
 
-BYTE Gb_core::stack_pop(){ return m_memory->read(++m_sp); };
+BYTE Gb_core::stack_pop(){ return m_memory->read(++m_sp); m_cycles++; };
 
-void Gb_core::stack_push(BYTE value){ m_memory->write(m_sp--, value); };
+void Gb_core::stack_push(BYTE value){ m_memory->write(m_sp--, value);  m_cycles++; };
 
 void Gb_core::set_flag(Gb_core::flag f, bool set){
 	set_F(set ? (get_F() | (0x1 << f)) : (get_F() & ~(0x1 << f)));
 };
 
-constexpr BYTE Gb_core::get_flag(flag f){ return (get_F() >> f) & 0x1; };
-// ---- ----
 void Gb_core::x8_alu_add(BYTE r2){
 	BYTE r1 = get_A();
 
 	set_flag(flag::SUBS, false);
-	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 + 0x0f)) & 0x10));
+	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 & 0x0f)) & 0x10));
 	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) & 0x100));
 	set_flag(flag::ZERO, static_cast<BYTE>(r1 + r2) == 0);
 
@@ -427,9 +453,9 @@ void Gb_core::x8_alu_adc(BYTE r2){
 	BYTE r1 = get_A();
 	BYTE c_flag = get_flag(flag::CARRY);
 
-	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 + 0x0f) + c_flag) & 0x10));
+	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 & 0x0f) + c_flag) & 0x10));
 	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff));
-	set_flag(flag::ZERO, r1 + r2 + c_flag == 0);
+	set_flag(flag::ZERO, static_cast<BYTE>(r1 + r2 + c_flag) == 0);
 	set_A(r1 + r2 + c_flag);
 };
 
@@ -498,27 +524,29 @@ void Gb_core::x8_alu_cp(BYTE r2){
 	set_flag(flag::ZERO, a == r2);
 	set_flag(flag::HALF_CARRY, ((a & 0x0f) - (r2 & 0x0f) < 0));
 	set_flag(flag::CARRY, a < r2);
+	m_cycles++;
 };
 
-void Gb_core::x8_alu_inc(reg_order n){
-	auto r = m_reg_rmap[static_cast<reg_order>(n)]();
-	auto res = m_reg_wmap[n](r + 1);
+BYTE Gb_core::x8_alu_inc(BYTE r){
+	BYTE res = r + 1;
 
 	set_flag(flag::ZERO, res == 0);
 	set_flag(flag::SUBS, false);
 	set_flag(flag::HALF_CARRY, ((res & 0x0f) == 0x00));
+
+	return res;
 };
 
-void Gb_core::x8_alu_dec(reg_order n){
-	auto r = m_reg_rmap[static_cast<reg_order>(n)]();
-	auto res = m_reg_wmap[n](r - 1);
+BYTE Gb_core::x8_alu_dec(BYTE r){
+	BYTE res = r - 1;
 	set_flag(flag::ZERO, res == 0);
 	set_flag(flag::SUBS, true);
 	set_flag(flag::HALF_CARRY, ((res & 0x0f) == 0x0f));
+	return res;
 };
 
 void Gb_core::x8_alu_daa(){
-	BYTE A = get_A();
+	auto A = get_A();
 	BYTE res, correction = 0;
 
 	if(get_flag(flag::HALF_CARRY) || (!get_flag(flag::SUBS) && (A & 0xf) > 9)){
@@ -527,20 +555,15 @@ void Gb_core::x8_alu_daa(){
 
 	if(get_flag(flag::CARRY) || (!get_flag(flag::SUBS) && (A > 0x99))){
 		correction |= 0x60;
+		set_flag(flag::CARRY, true);
 	};
 
-	if(get_flag(flag::SUBS)){
-		set_flag(flag::CARRY, (static_cast<WORD>(A - correction) & 0x100));
-		res = A - correction;
-	}else{
-		set_flag(flag::CARRY, (static_cast<WORD>(A + correction) & 0x100));
-		res = A + correction;
-	}
+	res = get_flag(flag::SUBS) ? A - correction : A + correction;
 	
 	set_flag(flag::ZERO, res == 0);
 	set_flag(flag::HALF_CARRY, false);
-
 	set_A(res);
+	m_cycles++;
 };
 
 void Gb_core::x8_alu_cpl(){
@@ -561,30 +584,34 @@ void Gb_core::x8_alu_scf(){
 	set_flag(flag::SUBS, false);
 };
 
-void Gb_core::ctrl_return(){
-	set_lower(m_pc, stack_pop());	
-	set_upper(m_pc, stack_pop());	
+void Gb_core::ctrl_return(bool cond){
+	if(branch_decision(cond)){
+		set_lower(m_pc, stack_pop());	
+		set_upper(m_pc, stack_pop());	
+		return;
+	}
 };
 
 void Gb_core::ctrl_call(bool cond){
-	if(cond){
-		BYTE upper = pc_get_byte();
-		BYTE lower = pc_get_byte();
+	if(branch_decision(cond)){
+		BYTE addr_lower = pc_get_byte();
+		BYTE addr_upper = pc_get_byte();
 
 		stack_push(get_upper(m_pc));
 		stack_push(get_lower(m_pc));
 
-		WORD jmp_addr = upper | (lower << 8);
-		m_pc = jmp_addr;
+		auto routine_addr = addr_lower | (addr_upper << 8);
+		m_pc = routine_addr;
+
 	}else{
 		m_pc += 2;
+		m_cycles++; // warning, 
 	}
-
 };
 
 void Gb_core::ctrl_jr(bool cond){
-	if(cond){
-		auto offset = static_cast<SIGNED_BYTE>(pc_get_byte());
+	if(branch_decision(cond)){
+		auto offset = static_cast<signed char>(pc_get_byte());
 		m_pc += offset;
 	}else{
 		m_pc += 1;
@@ -592,22 +619,21 @@ void Gb_core::ctrl_jr(bool cond){
 };
 
 void Gb_core::ctrl_rst(const WORD offset){
-	stack_push(m_pc);
+	stack_push(get_upper(m_pc));
+	stack_push(get_lower(m_pc));
 	m_pc = offset;
+	m_cycles++;
 };
-
-void Gb_core::x16_alu_inc(WORD& rr){ rr++; };
-void Gb_core::x16_alu_dec(WORD& rr){ rr++; };
 
 void Gb_core::x16_alu_add(WORD rr){
 	set_flag(flag::SUBS, false);
 	auto hl = get_HL();
-	hl += rr;
 
-	set_flag(flag::CARRY, ((static_cast<unsigned int>(hl) + static_cast<unsigned int>(rr)) & 0x10000));
-	set_flag(flag::HALF_CARRY, (((hl & 0xfff) + (rr & 0xfff)) & 0x1000));
+	set_flag(flag::CARRY, ((static_cast<unsigned int>(hl) + static_cast<unsigned int>(rr)) > 0xffff));
+	set_flag(flag::HALF_CARRY, (((static_cast<WORD>(hl) & 0xfff) + (static_cast<WORD>(rr) & 0xfff)) & 0x1000));
 
-	set_HL(hl);
+	set_HL(hl + rr);
+	m_cycles ++;
 };
 
 void Gb_core::x16_alu_addsp(){
@@ -619,12 +645,15 @@ void Gb_core::x16_alu_addsp(){
 	set_flag(flag::HALF_CARRY, (((m_sp & 0xf) + (value & 0xf)) & 0x10));
 	set_flag(flag::CARRY, (((m_sp & 0xff) + (value & 0xff)) & 0x100));
 
-	m_sp += value;
+	m_sp += value; // modifying 16-bit registers takes 4t?
+
+	m_cycles += 2;
 };
 
 WORD Gb_core::pc_get_word(){ 
-	WORD value = (m_memory->read(m_pc + 1) << 8) | (m_memory->read(m_pc));
-	m_pc += 2;
+	// 1300
+	WORD value = pc_get_byte() | (pc_get_byte() << 8);
+	m_cycles += 2;
 	return value;
 };
 
@@ -640,10 +669,10 @@ BYTE Gb_core::srl(BYTE r){
 BYTE Gb_core::rr(BYTE r){
 	auto _0bit = r & 0x1;
 
+	r >>= 1;
+	r |= (get_flag(flag::CARRY) << 7);
+
 	set_flag(flag::CARRY, _0bit);
-
-	r = (r >> 1) | (_0bit << 7);
-
 	set_flag(flag::ZERO, r == 0);
 	set_flag(flag::SUBS, false);
 	set_flag(flag::HALF_CARRY, false);
@@ -677,10 +706,25 @@ void Gb_core::handle_interrupts(){
 		for(int i = 0; i < 5; i++){
 			if(((intrp_flag >> i) & 0x1) && ((intrp_enbaled >> i) & 0x1)){
 				call_interrupt(static_cast<intrp>(i));
+				std::cout << "Calling interrupt" << std::endl;
+				exit(1);
 			}
 		};
+	}
+};
 
-	};
+void Gb_core::rra(){
+	auto a = get_A();
+	auto _0bit = a & 0x1;
+	a >>= 1;
+	a |= get_flag(flag::CARRY) << 7;
+
+	set_flag(flag::CARRY, _0bit);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::SUBS, false);
+	set_flag(flag::ZERO, false);
+
+	set_A(a);
 };
 
 void Gb_core::log(){
@@ -705,5 +749,11 @@ void Gb_core::log(){
 	printf("%02hhX ", (unsigned int)opcode);
 	opcode = m_memory->read(m_pc + 3);
 	printf("%02hhX)\n", (unsigned int)opcode);
-	//printf("op: %02hhX)\n", (unsigned int)tmp);
+	//printf("op: %02hhX )\n", (unsigned int)tmp);
+};
+
+BYTE Gb_core::pc_get_byte(){ 
+	auto byte = m_memory->read(m_pc++); 
+	m_cycles++;
+	return byte;
 };
