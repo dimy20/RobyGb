@@ -379,6 +379,20 @@ void Gb_core::make_cb_mappings(){
 		m_memory->write(get_HL(), res);
 	});
 	opcode_cbmap(0x1f, [this](){ set_A(rr(get_A())); });
+
+	// swap
+	opcode_cbmap(0x30, [this](){ set_B(swap(get_B())); });
+	opcode_cbmap(0x31, [this](){ set_C(swap(get_C())); });
+	opcode_cbmap(0x32, [this](){ set_D(swap(get_D())); });
+	opcode_cbmap(0x33, [this](){ set_E(swap(get_E())); });
+	opcode_cbmap(0x34, [this](){ set_H(swap(get_H())); });
+	opcode_cbmap(0x35, [this](){ set_L(swap(get_H())); });
+	opcode_cbmap(0x36, [this](){
+		WORD value = m_memory->read(get_HL());
+		m_memory->write(get_HL(), swap(value));
+		m_cycles += 2;
+	});
+	opcode_cbmap(0x37, [this](){ set_A(swap(get_A())); });
 };
 
 void Gb_core::init_registers(){
@@ -725,6 +739,20 @@ void Gb_core::rra(){
 	set_flag(flag::ZERO, false);
 
 	set_A(a);
+};
+
+BYTE Gb_core::swap(BYTE r){
+	BYTE lo_nible = r & 0x0f;
+	BYTE hi_nible = (r & 0xf0) >> 4;
+
+	BYTE res = (lo_nible << 4) | hi_nible;
+
+	set_flag(flag::ZERO, res == 0);
+	set_flag(flag::CARRY, false);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::SUBS, false);
+
+	return res;
 };
 
 void Gb_core::log(){
