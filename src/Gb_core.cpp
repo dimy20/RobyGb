@@ -467,9 +467,11 @@ void Gb_core::x8_alu_adc(BYTE r2){
 	BYTE r1 = get_A();
 	BYTE c_flag = get_flag(flag::CARRY);
 
+	set_flag(flag::ZERO, ((r1 + r2 + c_flag) & 0xff) == 0);
 	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 & 0x0f) + c_flag) & 0x10));
 	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) + c_flag > 0xff));
-	set_flag(flag::ZERO, static_cast<BYTE>(r1 + r2 + c_flag) == 0);
+	set_flag(flag::SUBS, false);
+
 	set_A(r1 + r2 + c_flag);
 };
 
@@ -489,11 +491,10 @@ void Gb_core::x8_alu_sbc(BYTE r2){
 	set_flag(flag::SUBS, true);
 
 	BYTE c_flag = get_flag(flag::CARRY);
-	set_flag(flag::CARRY, (static_cast<int>(r1 & 0x0f) < (static_cast<int>(r2 & 0x0f) + c_flag)));
+	set_flag(flag::ZERO, ((r1 - (r2 + c_flag)) & 0xff) == 0);
 
+	set_flag(flag::HALF_CARRY, (static_cast<int>(r1 & 0x0f) < (static_cast<int>(r2 & 0x0f) + c_flag)));
 	set_flag(flag::CARRY, r1 < (r2 + c_flag));
-
-	set_flag(flag::ZERO, (r1 - (r2 + c_flag) == 0));
 
 	set_A(r1 - (r2 + c_flag));
 };
