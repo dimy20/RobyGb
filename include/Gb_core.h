@@ -144,6 +144,8 @@ class Gb_core{
 
 		void opcode_map(BYTE opcode, std::function<void(void)> handler){ m_opcode_mat[row(opcode)][col(opcode)] = handler;};
 		void opcode_cbmap(BYTE opcode, std::function<void(void)> handler){ m_cb_mat[row(opcode)][col(opcode)] = handler; }
+
+		void opcode_0xf8();
 	private:
 		WORD m_registers[4];
 		WORD m_sp;

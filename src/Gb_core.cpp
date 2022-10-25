@@ -200,7 +200,7 @@ void Gb_core::make_mappings(){
 	opcode_map(0x0b, [this]() { set_BC(get_BC() - 1); m_cycles++; });
 	opcode_map(0x1b, [this]() { set_DE(get_DE() - 1); m_cycles++; });
 	opcode_map(0x2b, [this]() { set_HL(get_HL() - 1); m_cycles++; });
-	opcode_map(0x3b, [this]() { set_BC(get_BC() - 1); m_cycles++; });
+	opcode_map(0x3b, [this]() { m_sp--; m_cycles++; });
 
 	opcode_map(0x09, [this]() { x16_alu_add(get_BC()); });
 	opcode_map(0x19, [this]() { x16_alu_add(get_DE()); });
@@ -208,7 +208,7 @@ void Gb_core::make_mappings(){
 	opcode_map(0x39, [this]() { x16_alu_add(m_sp); });
 
 	opcode_map(0xe8, [this]() { x16_alu_addsp(); });
-	opcode_map(0xf8, [this]() { x16_alu_addsp(); set_HL(m_sp); m_cycles--; });
+	opcode_map(0xf8, [this]() { opcode_0xf8(); });
 
 	// x8/alu
 	// add r
@@ -647,7 +647,7 @@ void Gb_core::x16_alu_add(WORD rr){
 	set_flag(flag::HALF_CARRY, (((static_cast<WORD>(hl) & 0xfff) + (static_cast<WORD>(rr) & 0xfff)) & 0x1000));
 
 	set_HL(hl + rr);
-	m_cycles ++;
+	m_cycles++;
 };
 
 void Gb_core::x16_alu_addsp(){
@@ -664,10 +664,21 @@ void Gb_core::x16_alu_addsp(){
 	m_cycles += 2;
 };
 
+void Gb_core::opcode_0xf8(){
+	SIGNED_BYTE value = static_cast<SIGNED_BYTE>(pc_get_byte());
+
+	set_flag(flag::ZERO, false);
+	set_flag(flag::SUBS, false);
+
+	set_flag(flag::HALF_CARRY, (((m_sp & 0xf) + (value & 0xf)) & 0x10));
+	set_flag(flag::CARRY, (((m_sp & 0xff) + (value & 0xff)) & 0x100));
+
+	set_HL(m_sp + value);
+	m_cycles++;
+};
+
 WORD Gb_core::pc_get_word(){ 
-	// 1300
 	WORD value = pc_get_byte() | (pc_get_byte() << 8);
-	m_cycles += 2;
 	return value;
 };
 
