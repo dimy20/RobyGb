@@ -380,13 +380,13 @@ void Gb_core::make_cb_mappings(){
 	});
 	opcode_cbmap(0x1f, [this](){ set_A(rr(get_A())); });
 
-	// swap
+	// swap upper and lower nibles
 	opcode_cbmap(0x30, [this](){ set_B(swap(get_B())); });
 	opcode_cbmap(0x31, [this](){ set_C(swap(get_C())); });
 	opcode_cbmap(0x32, [this](){ set_D(swap(get_D())); });
 	opcode_cbmap(0x33, [this](){ set_E(swap(get_E())); });
 	opcode_cbmap(0x34, [this](){ set_H(swap(get_H())); });
-	opcode_cbmap(0x35, [this](){ set_L(swap(get_H())); });
+	opcode_cbmap(0x35, [this](){ set_L(swap(get_L())); });
 	opcode_cbmap(0x36, [this](){
 		WORD value = m_memory->read(get_HL());
 		m_memory->write(get_HL(), swap(value));
@@ -400,7 +400,7 @@ void Gb_core::make_cb_mappings(){
 	opcode_cbmap(0x02, [this](){ set_D(rlc(get_D())); });
 	opcode_cbmap(0x03, [this](){ set_E(rlc(get_E())); });
 	opcode_cbmap(0x04, [this](){ set_H(rlc(get_H())); });
-	opcode_cbmap(0x05, [this](){ set_L(rlc(get_H())); });
+	opcode_cbmap(0x05, [this](){ set_L(rlc(get_L())); });
 	opcode_cbmap(0x06, [this](){
 		WORD value = m_memory->read(get_HL());
 		m_memory->write(get_HL(), rlc(value));
@@ -429,7 +429,7 @@ void Gb_core::make_cb_mappings(){
 	opcode_cbmap(0x12, [this](){ set_D(rl(get_D())); });
 	opcode_cbmap(0x13, [this](){ set_E(rl(get_E())); });
 	opcode_cbmap(0x14, [this](){ set_H(rl(get_H())); });
-	opcode_cbmap(0x15, [this](){ set_L(rl(get_H())); });
+	opcode_cbmap(0x15, [this](){ set_L(rl(get_L())); });
 	opcode_cbmap(0x16, [this](){
 		WORD value = m_memory->read(get_HL());
 		m_memory->write(get_HL(), rl(value));
@@ -444,7 +444,7 @@ void Gb_core::make_cb_mappings(){
 	opcode_cbmap(0x22, [this](){ set_D(sla(get_D())); });
 	opcode_cbmap(0x23, [this](){ set_E(sla(get_E())); });
 	opcode_cbmap(0x24, [this](){ set_H(sla(get_H())); });
-	opcode_cbmap(0x25, [this](){ set_L(sla(get_H())); });
+	opcode_cbmap(0x25, [this](){ set_L(sla(get_L())); });
 	opcode_cbmap(0x26, [this](){
 		WORD value = m_memory->read(get_HL());
 		m_memory->write(get_HL(), sla(value));
@@ -466,6 +466,56 @@ void Gb_core::make_cb_mappings(){
 		m_cycles += 2;
 	});
 	opcode_cbmap(0x2f, [this](){ set_A(sra(get_A())); });
+
+
+	// bit : test if bit b is set in register r.
+	BYTE b = 0;
+	for(int opcode = 0x40; opcode <= 0x7f - 7; opcode += 8){
+		opcode_cbmap(opcode, [this, b](){ bit(get_B(), b); });
+		opcode_cbmap(opcode + 1, [this, b](){ bit(get_C(), b); });
+		opcode_cbmap(opcode + 2, [this, b](){ bit(get_D(), b); });
+		opcode_cbmap(opcode + 3, [this, b](){ bit(get_E(), b); });
+		opcode_cbmap(opcode + 4, [this, b](){ bit(get_H(), b); });
+		opcode_cbmap(opcode + 5, [this, b](){ bit(get_L(), b); });
+		opcode_cbmap(opcode + 6, [this, b](){ bit(m_memory->read(get_HL()), b); m_cycles++; });
+		opcode_cbmap(opcode + 7, [this, b](){ bit(get_A(), b); });
+		b++;
+	}
+
+	// res: reset bit b in register r.
+	b = 0;
+	for(int opcode = 0x80; opcode <= 0xbf - 7; opcode += 8){
+		opcode_cbmap(opcode, [this, b](){ set_B(res(get_B(), b)); });
+		opcode_cbmap(opcode + 1, [this, b](){ set_C(res(get_C(), b)); });
+		opcode_cbmap(opcode + 2, [this, b](){ set_D(res(get_D(), b)); });
+		opcode_cbmap(opcode + 3, [this, b](){ set_E(res(get_E(), b)); });
+		opcode_cbmap(opcode + 4, [this, b](){ set_H(res(get_H(), b)); });
+		opcode_cbmap(opcode + 5, [this, b](){ set_L(res(get_L(), b)); });
+		opcode_cbmap(opcode + 6, [this, b](){
+			BYTE value = res(m_memory->read(get_HL()), b);
+			m_memory->write(get_HL(), value);
+			m_cycles += 2;
+		});
+		opcode_cbmap(opcode + 7, [this, b](){ set_A(res(get_A(), b)); });
+		b++;
+	}
+	// set: set bit b in register r
+	b = 0;
+	for(int opcode = 0xc0; opcode <= 0xff - 7; opcode += 8){
+		opcode_cbmap(opcode, [this, b](){ set_B(set(get_B(), b)); });
+		opcode_cbmap(opcode + 1, [this, b](){ set_C(set(get_C(), b)); });
+		opcode_cbmap(opcode + 2, [this, b](){ set_D(set(get_D(), b)); });
+		opcode_cbmap(opcode + 3, [this, b](){ set_E(set(get_E(), b)); });
+		opcode_cbmap(opcode + 4, [this, b](){ set_H(set(get_H(), b)); });
+		opcode_cbmap(opcode + 5, [this, b](){ set_L(set(get_L(), b)); });
+		opcode_cbmap(opcode + 6, [this, b](){
+			BYTE value = set(m_memory->read(get_HL()), b);
+			m_memory->write(get_HL(), value);
+			m_cycles += 2;
+		});
+		opcode_cbmap(opcode + 7, [this, b](){ set_A(set(get_A(), b)); });
+		b++;
+	}
 };
 
 void Gb_core::init_registers(){
@@ -898,6 +948,23 @@ BYTE Gb_core::sra(BYTE r){
 	set_flag(flag::HALF_CARRY, false);
 	set_flag(flag::ZERO, r == 0);
 
+	return r;
+};
+
+
+void Gb_core::bit(BYTE r, BYTE b){
+	set_flag(flag::ZERO, !( r & (0x1 << b)));
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, true);
+};
+
+BYTE Gb_core::res(BYTE r, BYTE b){
+	r &= ~(0x1 << b);
+	return r;
+};
+
+BYTE Gb_core::set(BYTE r, BYTE b){
+	r |= (1 << b);
 	return r;
 };
 
