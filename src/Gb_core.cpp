@@ -393,6 +393,79 @@ void Gb_core::make_cb_mappings(){
 		m_cycles += 2;
 	});
 	opcode_cbmap(0x37, [this](){ set_A(swap(get_A())); });
+
+	// rlc : rotate left to carry flag.
+	opcode_cbmap(0x00, [this](){ set_B(rlc(get_B())); });
+	opcode_cbmap(0x01, [this](){ set_C(rlc(get_C())); });
+	opcode_cbmap(0x02, [this](){ set_D(rlc(get_D())); });
+	opcode_cbmap(0x03, [this](){ set_E(rlc(get_E())); });
+	opcode_cbmap(0x04, [this](){ set_H(rlc(get_H())); });
+	opcode_cbmap(0x05, [this](){ set_L(rlc(get_H())); });
+	opcode_cbmap(0x06, [this](){
+		WORD value = m_memory->read(get_HL());
+		m_memory->write(get_HL(), rlc(value));
+		m_cycles += 2;
+	});
+
+	opcode_cbmap(0x07, [this](){ set_A(rlc(get_A())); });
+
+	// rrc : rotate right to carry flag
+	opcode_cbmap(0x08, [this](){ set_B(rrc(get_B())); });
+	opcode_cbmap(0x09, [this](){ set_C(rrc(get_C())); });
+	opcode_cbmap(0x0a, [this](){ set_D(rrc(get_D())); });
+	opcode_cbmap(0x0b, [this](){ set_E(rrc(get_E())); });
+	opcode_cbmap(0x0c, [this](){ set_H(rrc(get_H())); });
+	opcode_cbmap(0x0d, [this](){ set_L(rrc(get_L())); });
+	opcode_cbmap(0x0e, [this](){
+		WORD value = m_memory->read(get_HL());
+		m_memory->write(get_HL(), rrc(value));
+		m_cycles += 2;
+	});
+	opcode_cbmap(0x0f, [this](){ set_A(rrc(get_A())); });
+
+	// rlc : rotate left through carry flag.
+	opcode_cbmap(0x10, [this](){ set_B(rl(get_B())); });
+	opcode_cbmap(0x11, [this](){ set_C(rl(get_C())); });
+	opcode_cbmap(0x12, [this](){ set_D(rl(get_D())); });
+	opcode_cbmap(0x13, [this](){ set_E(rl(get_E())); });
+	opcode_cbmap(0x14, [this](){ set_H(rl(get_H())); });
+	opcode_cbmap(0x15, [this](){ set_L(rl(get_H())); });
+	opcode_cbmap(0x16, [this](){
+		WORD value = m_memory->read(get_HL());
+		m_memory->write(get_HL(), rl(value));
+		m_cycles += 2;
+	});
+
+	opcode_cbmap(0x17, [this](){ set_A(rl(get_A())); });
+
+	// sla : shift left into carry
+	opcode_cbmap(0x20, [this](){ set_B(sla(get_B())); });
+	opcode_cbmap(0x21, [this](){ set_C(sla(get_C())); });
+	opcode_cbmap(0x22, [this](){ set_D(sla(get_D())); });
+	opcode_cbmap(0x23, [this](){ set_E(sla(get_E())); });
+	opcode_cbmap(0x24, [this](){ set_H(sla(get_H())); });
+	opcode_cbmap(0x25, [this](){ set_L(sla(get_H())); });
+	opcode_cbmap(0x26, [this](){
+		WORD value = m_memory->read(get_HL());
+		m_memory->write(get_HL(), sla(value));
+		m_cycles += 2;
+	});
+
+	opcode_cbmap(0x27, [this](){ set_A(sla(get_A())); });
+
+	// sra
+	opcode_cbmap(0x28, [this](){ set_B(sra(get_B())); });
+	opcode_cbmap(0x29, [this](){ set_C(sra(get_C())); });
+	opcode_cbmap(0x2a, [this](){ set_D(sra(get_D())); });
+	opcode_cbmap(0x2b, [this](){ set_E(sra(get_E())); });
+	opcode_cbmap(0x2c, [this](){ set_H(sra(get_H())); });
+	opcode_cbmap(0x2d, [this](){ set_L(sra(get_L())); });
+	opcode_cbmap(0x2e, [this](){
+		WORD value = m_memory->read(get_HL());
+		m_memory->write(get_HL(), sra(value));
+		m_cycles += 2;
+	});
+	opcode_cbmap(0x2f, [this](){ set_A(sra(get_A())); });
 };
 
 void Gb_core::init_registers(){
@@ -765,6 +838,67 @@ BYTE Gb_core::swap(BYTE r){
 	set_flag(flag::SUBS, false);
 
 	return res;
+};
+
+BYTE Gb_core::rlc(BYTE r){
+	BYTE _7bit = (r >> 7) & 0x1;
+	r = r << 1 | _7bit;
+
+	set_flag(flag::CARRY, _7bit);
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::ZERO, r == 0);
+
+	return r;
+};
+
+BYTE Gb_core::rl(BYTE r){
+	BYTE _7bit = (r >> 7) & 0x1;
+	r = r << 1 | get_flag(flag::CARRY);
+
+	set_flag(flag::CARRY, _7bit);
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::ZERO, r == 0);
+
+	return r;
+};
+
+BYTE Gb_core::rrc(BYTE r){
+	BYTE _0bit = r & 0x1;
+	r = r >> 1 | (r << 7);
+
+	set_flag(flag::CARRY, _0bit);
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::ZERO, r == 0);
+
+	return r;
+};
+
+BYTE Gb_core::sla(BYTE r){
+	BYTE _7bit = (r >> 7) & 0x1;
+	r <<= 1;
+
+	set_flag(flag::CARRY, _7bit);
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::ZERO, r == 0);
+
+	return r;
+};
+
+BYTE Gb_core::sra(BYTE r){
+	set_flag(flag::CARRY, r & 0x1);
+
+	BYTE _7bit = r & 0x80;
+	r = r >> 1 | _7bit;
+
+	set_flag(flag::SUBS, false);
+	set_flag(flag::HALF_CARRY, false);
+	set_flag(flag::ZERO, r == 0);
+
+	return r;
 };
 
 void Gb_core::log(){

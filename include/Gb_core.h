@@ -134,8 +134,13 @@ class Gb_core{
 
 		BYTE srl(BYTE r);
 		BYTE rr(BYTE r);
+		BYTE rrc(BYTE r);
 		void rra();
+		BYTE rlc(BYTE r);
+		BYTE rl(BYTE r);
 		BYTE swap(BYTE r); // Swap upper & lower nibles of r;
+		BYTE sla(BYTE r);
+		BYTE sra(BYTE r);
 
 		void call_interrupt(intrp i);
 
