@@ -339,7 +339,7 @@ void Gb_core::make_mappings(){
 	opcode_map(0x3f, [this](){ x8_alu_ccf(); });
 
 	// x8 rsb
-	opcode_map(0x1f, [this](){ rra(); });
+
 	opcode_map(0xcb, [this](){ // forward opcode to m_cb_mat
 		auto opcode = pc_get_byte();
 		auto op_handler = m_cb_mat[ROW(opcode)][COL(opcode)];
@@ -351,7 +351,12 @@ void Gb_core::make_mappings(){
 		}
 	});
 
-};
+	// misc
+	opcode_map(0x1f, [this](){ set_A(rr(get_A())); set_flag(flag::ZERO,false); });
+	opcode_map(0x07, [this](){ set_A(rlc(get_A())); set_flag(flag::ZERO, false); });
+	opcode_map(0x17, [this](){ set_A(rl(get_A())); set_flag(flag::ZERO, false); });
+	opcode_map(0x0f, [this](){ set_A(rrc(get_A())); set_flag(flag::ZERO, false); });
+}
 
 void Gb_core::make_cb_mappings(){
 	// srl
@@ -367,7 +372,7 @@ void Gb_core::make_cb_mappings(){
 	});
 	opcode_cbmap(0x3f, [this](){ set_A(srl(get_A())); });
 
-	//rr
+	//rr : rotate right trough carry flag
 	opcode_cbmap(0x18, [this](){ set_B(rr(get_B())); });
 	opcode_cbmap(0x19, [this](){ set_C(rr(get_C())); });
 	opcode_cbmap(0x1a, [this](){ set_D(rr(get_D())); });
@@ -860,20 +865,6 @@ void Gb_core::handle_interrupts(){
 			}
 		};
 	}
-};
-
-void Gb_core::rra(){
-	auto a = get_A();
-	auto _0bit = a & 0x1;
-	a >>= 1;
-	a |= get_flag(flag::CARRY) << 7;
-
-	set_flag(flag::CARRY, _0bit);
-	set_flag(flag::HALF_CARRY, false);
-	set_flag(flag::SUBS, false);
-	set_flag(flag::ZERO, false);
-
-	set_A(a);
 };
 
 BYTE Gb_core::swap(BYTE r){
