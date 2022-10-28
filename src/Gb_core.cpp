@@ -525,14 +525,11 @@ void Gb_core::make_cb_mappings(){
 
 void Gb_core::init_registers(){
 	memset(m_registers, 0, sizeof(WORD) * 4);
-
-	set_flag(flag::CARRY, true);
-	set_flag(flag::HALF_CARRY, true);
-	set_flag(flag::ZERO, true);
-	set_A(0x01);
 	set_BC(0x0013);
 	set_DE(0x00d8);
 	set_HL(0x014d);
+    set_AF(0x01B0);
+
 	m_sp = SP_INIT_ADDR;
 };
 
@@ -550,7 +547,6 @@ void Gb_core::init(){
 
 // real cycles not taken into account for now.
 int Gb_core::execute_instruction(){
-	//log();
 	BYTE opcode = pc_get_byte();
 	m_cycles = 0;
 	auto opcode_handler = m_opcode_mat[ROW(opcode)][COL(opcode)];
@@ -572,9 +568,13 @@ void Gb_core::jmp_nn(bool cond){
 	m_cycles++; // warning
 };
 
-BYTE Gb_core::stack_pop(){ return m_memory->read(++m_sp); m_cycles++; };
+BYTE Gb_core::stack_pop(){
+	m_cycles++;
+	BYTE r = m_memory->read(m_sp++);
+	return r;
+};
 
-void Gb_core::stack_push(BYTE value){ m_memory->write(m_sp--, value);  m_cycles++; };
+void Gb_core::stack_push(BYTE value){ m_memory->write(--m_sp, value);  m_cycles++; };
 
 void Gb_core::set_flag(Gb_core::flag f, bool set){
 	set_F(set ? (get_F() | (0x1 << f)) : (get_F() & ~(0x1 << f)));
