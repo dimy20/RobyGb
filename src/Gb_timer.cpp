@@ -16,16 +16,16 @@ void Gb_timer::update(int cycles){
 	m_timer_counter -= cycles;
 
 	if(m_timer_counter <= 0){
-		BYTE timer_counter = m_memory->read(TIMA);
+		BYTE timer_counter = m_memory->read(Mem_mu::io_port::TIMA);
 
 		if(timer_counter == 0xff){
 			// reset
-			BYTE timer_modulo = m_memory->read(TMA);
-			m_memory->write(TIMA, timer_modulo);
+			BYTE timer_modulo = m_memory->read(Mem_mu::io_port::TMA);
+			m_memory->write(Mem_mu::io_port::TIMA, timer_modulo);
 			// interrupt
 			send_interrupt(2);
 		}else{
-			m_memory->write(TIMA, timer_counter + 1);
+			m_memory->write(Mem_mu::io_port::TIMA, timer_counter + 1);
 		}
 	};
 };
