@@ -72,7 +72,7 @@ void Gb_core::make_mappings(){
 	opcode_map(0x73, [this](){ m_memory->write(get_HL(), get_E()); m_cycles++; } );
 	opcode_map(0x74, [this](){ m_memory->write(get_HL(), get_H()); m_cycles++; } );
 	opcode_map(0x75, [this](){ m_memory->write(get_HL(), get_L()); m_cycles++; } );
-	opcode_map(0x76, [this](){ while(1){}; });
+	opcode_map(0x76, [this](){ halt(); });
 	opcode_map(0x77, [this](){ m_memory->write(get_HL(), get_A()); m_cycles++;} );
 
 	// ld a, r
@@ -547,6 +547,8 @@ void Gb_core::init(){
 
 // real cycles not taken into account for now.
 int Gb_core::execute_instruction(){
+	if(m_halted) return 4;
+	//log();
 	BYTE opcode = pc_get_byte();
 	m_cycles = 0;
 	auto opcode_handler = m_opcode_mat[ROW(opcode)][COL(opcode)];
@@ -556,6 +558,12 @@ int Gb_core::execute_instruction(){
 		std::cerr << "Unknown opcode : " << std::hex << (int)opcode << std::endl;
 		exit(1);
 	}
+	/*
+	if(m_haltbug){
+		m_pc--;
+		m_haltbug = false;
+	}
+	*/
 	return m_cycles * 4;
 };
 
@@ -836,6 +844,7 @@ BYTE Gb_core::rr(BYTE r){
 
 void Gb_core::call_interrupt(intrp i){
 	// two waits are executed first
+	m_cycles += 2;
 	// prevent further interrupts
 	m_interrupts_enabled = false;
 
@@ -844,8 +853,8 @@ void Gb_core::call_interrupt(intrp i){
 	intrp_flag &= ~(0x1 << i);
 	m_memory->write(IF_ADDR, intrp_flag);
 
-	stack_push(get_lower(m_pc));
 	stack_push(get_upper(m_pc));
+	stack_push(get_lower(m_pc));
 
 	// call interrupt handler
 	assert(m_intrp_addr.find(i) != m_intrp_addr.end());
@@ -853,18 +862,21 @@ void Gb_core::call_interrupt(intrp i){
 };
 
 void Gb_core::handle_interrupts(){
-	if(m_interrupts_enabled){
-		auto intrp_flag = m_memory->read(IF_ADDR);
-		auto intrp_enbaled = m_memory->read(IE_ADDR);
-		if(intrp_flag == 0) return;
-		for(int i = 0; i < 5; i++){
-			if(((intrp_flag >> i) & 0x1) && ((intrp_enbaled >> i) & 0x1)){
-				call_interrupt(static_cast<intrp>(i));
-				std::cout << "Calling interrupt" << std::endl;
-				exit(1);
-			}
-		};
-	}
+	if(interrups_pending()){
+		m_halted = false;
+	};
+
+	auto intrp_flag = m_memory->read(IF_ADDR);
+	auto intrp_enbaled = m_memory->read(IE_ADDR);
+
+	if(!m_interrupts_enabled) return; // di
+	if(intrp_flag == 0) return; // no requests
+
+	for(int i = 0; i < 5; i++){
+		if(((intrp_flag >> i) & 0x1) && ((intrp_enbaled >> i) & 0x1)){
+			call_interrupt(static_cast<intrp>(i));
+		}
+	};
 };
 
 BYTE Gb_core::swap(BYTE r){
@@ -957,6 +969,27 @@ BYTE Gb_core::res(BYTE r, BYTE b){
 BYTE Gb_core::set(BYTE r, BYTE b){
 	r |= (1 << b);
 	return r;
+};
+
+void Gb_core::halt(){
+	if(m_interrupts_enabled){
+		m_halted = true;
+		return;
+	}else{
+		if(interrups_pending()){
+			m_halted = false;
+			m_haltbug = true;
+			return;
+		}else{
+			m_halted = true;
+		}
+	}
+};
+
+bool Gb_core::interrups_pending() const{
+	BYTE intrp_flags = m_memory->read(Mem_mu::io_port::IF);
+	BYTE intrp_enabled = m_memory->read(Mem_mu::io_port::IE);
+	return intrp_flags & intrp_enabled & 0x1f;
 };
 
 void Gb_core::log(){

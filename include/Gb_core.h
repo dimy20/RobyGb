@@ -154,6 +154,10 @@ class Gb_core{
 		void opcode_cbmap(BYTE opcode, std::function<void(void)> handler){ m_cb_mat[row(opcode)][col(opcode)] = handler; }
 
 		void opcode_0xf8();
+		
+		void halt();
+		bool interrups_pending() const;
+
 	private:
 		WORD m_registers[4];
 		WORD m_sp;
@@ -166,4 +170,6 @@ class Gb_core{
 		std::function<void(void)> m_cb_mat[16][16];
 		std::map<intrp, WORD> m_intrp_addr;
 		int m_cycles = 0;
+		bool m_halted = false;
+		bool m_haltbug = false;
 };
