@@ -356,6 +356,7 @@ void Gb_core::make_mappings(){
 	opcode_map(0x07, [this](){ set_A(rlc(get_A())); set_flag(flag::ZERO, false); });
 	opcode_map(0x17, [this](){ set_A(rl(get_A())); set_flag(flag::ZERO, false); });
 	opcode_map(0x0f, [this](){ set_A(rrc(get_A())); set_flag(flag::ZERO, false); });
+	opcode_map(0x10, [this](){ halt(); });
 }
 
 void Gb_core::make_cb_mappings(){
