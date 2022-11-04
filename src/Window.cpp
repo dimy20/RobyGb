@@ -65,17 +65,6 @@ void Window::init(){
         err = glGetError();
     }
 
-	/*
-	unsigned char * texture = (unsigned char *)malloc(sizeof(unsigned char) * 1024);
-	memset(texture, 0, sizeof(unsigned char ) * (1024));
-	for(int i = 0; i < 32; i++){
-		for(int j = 0; j < 32; j++){
-			texture[(i * 32) + j] = (i == 0 || i == 31) ? 255 : 0;
-		}
-	};
-	*/
-
-
 	const int width = 160;
 	const int height = 144;
 	const int depth = 3;
@@ -154,18 +143,5 @@ void Window::update_texture(const unsigned char * data){
 
 
 void Window::ppu_recv(const std::vector<unsigned char>& pixels){
-	/*
-	for(int i = 0; i < 144; i++){
-		for(int j = 0; j < 160; j++){
-			//std::cout << "new line : ";
-			for(int d = 0; d < 3; d++){
-				auto index = (i * 160) + j;
-				std::cout << (unsigned int)pixels[index + d] << " ";
-			}
-		}
-		std::cout << "\n";
-	}
-	*/
-
 	update_texture(pixels.data());
 };

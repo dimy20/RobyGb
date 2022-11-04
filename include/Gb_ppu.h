@@ -36,6 +36,12 @@ class Lcd{
 		BYTE status() const;
 		BYTE control() const;
 
+		BYTE window_x() const;
+		BYTE window_y() const;
+
+		BYTE scroll_x() const;
+		BYTE scroll_y() const;
+
 		WORD bg_tilemap() const;
 		WORD wn_tilemap() const;
 		bool window_enabled() const;
@@ -77,8 +83,7 @@ class Gb_ppu{
 		Mem_mu * m_memory = nullptr;
 		// keep track of how many cycles are left to finished drawing current scanline.
 		int m_cycles_left = DRAW_SCANLINE_CYCLES;
-		std::vector<unsigned char> m_visible_screen;
-		std::vector<unsigned char> m_background;
+		std::vector<unsigned char> m_viewport;
 		int m_prev_line = -1;
 		Lcd m_lcd;
 };

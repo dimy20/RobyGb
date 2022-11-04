@@ -6,10 +6,14 @@ void Lcd::init(Mem_mu * memory){
 
 BYTE Lcd::status() const { return m_memory->read(Mem_mu::io_port::STAT); };
 BYTE Lcd::control() const { return m_memory->read(Mem_mu::io_port::LCDC); };
-bool Lcd::enabled() const{ return status() >> 7;};
+bool Lcd::enabled() const{ return control() >> 7;};
 bool Lcd::window_enabled() const{ return control() & 0x20; };
 WORD Lcd::bg_tilemap() const{ return control() & 0x08 ? 0x9c00 : 0x9800; };
 WORD Lcd::wn_tilemap() const{ return control() & 0x40 ? 0x9c00 : 0x9800; };
+BYTE Lcd::window_x() const { return m_memory->read(Mem_mu::io_port::WX); };
+BYTE Lcd::window_y() const { return m_memory->read(Mem_mu::io_port::WY); };
+BYTE Lcd::scroll_x() const { return m_memory->read(Mem_mu::io_port::SCX); };
+BYTE Lcd::scroll_y() const { return m_memory->read(Mem_mu::io_port::SCY); };
 
 void Lcd::fire_interrupt(intrp i) const {
 	auto intrp_flag = m_memory->read(IF_ADDR);
@@ -53,9 +57,7 @@ WORD Lcd::tile_data() const{
 void Gb_ppu::init(Mem_mu * memory, Window * window){
 	m_memory = memory;
 	m_window = window;
-	m_visible_screen = std::vector<unsigned char>(VIEWPORT_WIDTH * VIEWPORT_HEIGHT * 3, 0xff);
-
-	m_background = std::vector<unsigned char>(256 * 256 * 3);
+	m_viewport = std::vector<unsigned char>(VIEWPORT_WIDTH * VIEWPORT_HEIGHT * 3, 0xff);
 	m_lcd.init(memory);
 };
 
@@ -114,29 +116,44 @@ void Gb_ppu::update_graphics(int elapsed_cycles){
 	if(line == 144){
 		m_lcd.set_mode(Lcd::mode::VBLANKM);
 		// send texture to opengl
-		m_window->ppu_recv(m_visible_screen);
+		m_window->ppu_recv(m_viewport);
 	}
 
 };
 
 void Gb_ppu::render_tiles(int scanline){
-	auto scy = m_memory->read(Mem_mu::io_port::SCY);
-	auto scx = m_memory->read(Mem_mu::io_port::SCX);
-	WORD tile_map;
-	// Window or bg?
-	if(m_lcd.window_enabled()){
-		// implement window stuff
-	}else{
-		// select map ?
-		tile_map = m_lcd.bg_tilemap();
-	}
-
 	// draw each pixel of the viewport for the current scanline.
 	for(BYTE pixel_x = 0; pixel_x < VIEWPORT_WIDTH; pixel_x++){
-		// pixels x and y coordinates in the tile map.
-		// Wraps around if exceeds edges.
-		WORD curr_x = (pixel_x + scx) % 256;
-		WORD curr_y = (scanline + scy) % 256;
+		WORD tile_map;
+		auto offset = ((scanline * VIEWPORT_WIDTH) + pixel_x) * 3;
+		WORD curr_x, curr_y;
+
+		if(!m_lcd.enabled()){
+			// when display is disabled the screen is blank
+			m_viewport[offset] = 0;
+			m_viewport[offset + 1] = 0;
+			m_viewport[offset + 2] = 0;
+		}else if(m_lcd.window_enabled()){
+			// top left position -> (7, 0);
+			BYTE wx = m_lcd.window_x() - 7;
+			BYTE wy = m_lcd.window_y();
+			if(scanline >= wy && scanline - wy < 144 && pixel_x >= wx){
+				// window pixel position relative to the viewport.
+				curr_x = pixel_x - wx;
+				tile_map = m_lcd.wn_tilemap();
+				curr_y = scanline - wy;
+			}
+		}else{
+			// pixel position in viewport relative to the background
+			// Wraps around if exceeds edges.
+			BYTE scy = m_lcd.scroll_y();
+			BYTE scx = m_lcd.scroll_x();
+			tile_map = m_lcd.bg_tilemap(); 
+
+			curr_x = (pixel_x + scx) % 256;
+			curr_y = (scanline + scy) % 256; 
+		}
+
 		// find the tile this pixel belongs to
 		WORD tile_addr = pixel_find_tile(tile_map, curr_x, curr_y);
 		// build the pixel
@@ -151,10 +168,9 @@ void Gb_ppu::render_tiles(int scanline){
 			case 2: red = 0x77; green = 0x77; blue = 0x77; break; // dark grey
 			case 3: red = green = blue = 0; break; // black
 		}
-		auto offset = ((scanline * VIEWPORT_WIDTH) + pixel_x) * 3;
-		m_visible_screen[offset] = red;
-		m_visible_screen[offset + 1] = green;
-		m_visible_screen[offset + 2] = blue;
+		m_viewport[offset] = red;
+		m_viewport[offset + 1] = green;
+		m_viewport[offset + 2] = blue;
 	};
 
 };
@@ -210,7 +226,6 @@ WORD Gb_ppu::pixel_find_tile(const WORD tilemap, BYTE pixel_x, BYTE pixel_y){
 
 	return offset;
 };
-
 // not implemented yet
 void Gb_ppu::render_sprites(){};
 

@@ -87,7 +87,9 @@ class Mem_mu{
 		OBP1 = 0xff49,
 		SCY = 0xff42,
 		SCX = 0xff43,
-		LYC = 0xff45
+		LYC = 0xff45,
+		WY = 0Xff4a,
+		WX = 0xff4b,
 	};
 	public:
 		Mem_mu();
