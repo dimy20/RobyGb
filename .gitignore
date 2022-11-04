@@ -34,3 +34,6 @@ build
 *.app
 research
 tests
+
+src/glad.c
+include/glad
