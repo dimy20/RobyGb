@@ -12,7 +12,7 @@
 struct cart_mbc{
 	// mbc registers
 	bool m_ram_enable;
-	BYTE m_rom_bank_number;
+	BYTE m_rom_bank_number = 0;
 	BYTE m_ram_bank_number;
 	BYTE m_banking_mode;
 };

@@ -46,7 +46,7 @@ void Gb_cartridge::mbc_intercept(WORD addr, BYTE value){
 	// handle ram enable
 	if(m_mbc1){
 		if(addr < 0x2000){
-			mbc.m_ram_enable = (addr & 0xf == 0xa) ? true : false;
+			mbc.m_ram_enable = ((addr & 0xf) == 0xa) ? true : false;
 			// handle rom change
 		}else if(addr >= 0x2000 && addr <= 0x3fff){
 			BYTE lo5 = value & 0x1f;
@@ -83,7 +83,7 @@ void Gb_cartridge::mbc_intercept(WORD addr, BYTE value){
 			// not large enough, no effect.
 			if(ram_size() <= 0x0 && rom_size() <= 0x1f) return;
 
-			if(value & 0x1 == 0){
+			if((value & 0x1) == 0){
 				mbc.m_banking_mode = SIMPLE_BANKING_MODE;
 			    mbc.m_ram_bank_number = 0;
 			}else mbc.m_banking_mode = RAM_BANKING_MODE;
@@ -111,7 +111,7 @@ BYTE Gb_cartridge::read_ram(WORD addr){
 	assert(addr >= 0xa000 && addr <= 0xbfff && 
 								"External ram addr sould be in range 0xa000 - 0xbfff");
 
-	if(!mbc.m_ram_enable) GB_DIE("Readig from disabled external ram.");
+	//if(!mbc.m_ram_enable) GB_DIE("Readig from disabled external ram.");
 	BYTE offset = addr - 0xa000;
 	// wrong leave it for now
 	return m_ram[offset + (mbc.m_ram_bank_number * 0x2000)];

@@ -594,7 +594,7 @@ void Gb_core::x8_alu_add(BYTE r2){
 
 	set_flag(flag::SUBS, false);
 	set_flag(flag::HALF_CARRY, (((r1 & 0x0f) + (r2 & 0x0f)) & 0x10));
-	set_flag(flag::CARRY, (static_cast<WORD>(r1) + static_cast<WORD>(r2) & 0x100));
+	set_flag(flag::CARRY, ((static_cast<WORD>(r1) + static_cast<WORD>(r2)) & 0x100));
 	set_flag(flag::ZERO, static_cast<BYTE>(r1 + r2) == 0);
 
 	set_A(r1 + r2);
@@ -1005,9 +1005,7 @@ void Gb_core::log(){
 	printf("SP: %04X ", (unsigned int)m_sp);
 	printf("PC: 00:%04X ", (unsigned int)m_pc);
 
-	BYTE tmp;
 	auto opcode = m_memory->read(m_pc);
-	tmp = opcode;
 	printf("(%02hhX ", (unsigned int)opcode);
 	opcode = m_memory->read(m_pc + 1);
 	printf("%02hhX ", (unsigned int)opcode);
