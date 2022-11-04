@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_BUILD_TYPE debug)
 
 include(GoogleTest)
-add_subdirectory(tests)
 add_subdirectory(glfw)
 
 
@@ -31,6 +30,3 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 						  glfw)
 
 target_link_libraries(${PROJECT_NAME} Gb_Emulator glfw GL)
-#target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
-
-enable_testing()
