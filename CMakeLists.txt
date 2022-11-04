@@ -7,11 +7,19 @@ set(CMAKE_BUILD_TYPE debug)
 
 include(GoogleTest)
 add_subdirectory(tests)
+add_subdirectory(glfw)
+
 
 add_library(Gb_Emulator src/Gb_emulator.cpp
 						src/Memory.cpp
 						src/Gb_cartridge.cpp
-						src/Gb_core.cpp)
+						src/Gb_core.cpp
+						src/Gb_ppu.cpp
+						src/Gb_timer.cpp
+						src/Window.cpp
+						src/Shader.cpp
+						src/glad.c)
+target_compile_options(Gb_Emulator PRIVATE -Werror -Wall -Wextra)
 target_include_directories(Gb_Emulator PUBLIC 
 						  ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
@@ -19,8 +27,10 @@ add_executable(${PROJECT_NAME}
 				src/main.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC 
-						  ${CMAKE_CURRENT_SOURCE_DIR}/include)
+						  ${CMAKE_CURRENT_SOURCE_DIR}/include
+						  glfw)
 
-target_link_libraries(${PROJECT_NAME} Gb_Emulator GL)
+target_link_libraries(${PROJECT_NAME} Gb_Emulator glfw GL)
+#target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 
 enable_testing()
