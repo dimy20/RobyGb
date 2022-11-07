@@ -44,8 +44,13 @@ class Lcd{
 
 		WORD bg_tilemap() const;
 		WORD wn_tilemap() const;
+		WORD oam_base() const;
+		BYTE obj_size() const;
+
 		bool window_enabled() const;
 		bool enabled() const;
+		bool obj_enabled() const;
+		bool wnbg_enabled() const; // window/background priority
 	private:
 		Mem_mu * m_memory;
 };
@@ -66,11 +71,11 @@ class Gb_ppu{
 		void draw_scanline(int line);
 		bool enabled() const; // test 
 		void render_tiles(int scanline);
-		void render_sprites();
+		void render_sprites(int line);
 		BYTE get_scanline() const{ return m_memory->read(0xff44); };
 		WORD pixel_find_tile(const WORD tilemap, BYTE pixel_x, BYTE pixel_y);
 		BYTE tile_assemble_pixel(WORD tile_addr, WORD x, WORD y);
-		BYTE palette_get_color(BYTE color_id);
+		BYTE palette_get_color(BYTE color_id, WORD palette_addr);
 		void set_lcdc_mode(const int mode) const;
 
 

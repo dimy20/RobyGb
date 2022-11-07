@@ -6,14 +6,20 @@ void Lcd::init(Mem_mu * memory){
 
 BYTE Lcd::status() const { return m_memory->read(Mem_mu::io_port::STAT); };
 BYTE Lcd::control() const { return m_memory->read(Mem_mu::io_port::LCDC); };
+
 bool Lcd::enabled() const{ return control() >> 7;};
 bool Lcd::window_enabled() const{ return control() & 0x20; };
+bool Lcd::obj_enabled() const {return control() & 0x02; };
+bool Lcd::wnbg_enabled() const {return control() & 1; };
+WORD Lcd::oam_base() const { return m_memory->read(0xfe00); };
+
 WORD Lcd::bg_tilemap() const{ return control() & 0x08 ? 0x9c00 : 0x9800; };
 WORD Lcd::wn_tilemap() const{ return control() & 0x40 ? 0x9c00 : 0x9800; };
 BYTE Lcd::window_x() const { return m_memory->read(Mem_mu::io_port::WX); };
 BYTE Lcd::window_y() const { return m_memory->read(Mem_mu::io_port::WY); };
 BYTE Lcd::scroll_x() const { return m_memory->read(Mem_mu::io_port::SCX); };
 BYTE Lcd::scroll_y() const { return m_memory->read(Mem_mu::io_port::SCY); };
+BYTE Lcd::obj_size() const{ return (control() >> 2) & 1; };
 
 void Lcd::fire_interrupt(intrp i) const {
 	auto intrp_flag = m_memory->read(IF_ADDR);
@@ -62,16 +68,10 @@ void Gb_ppu::init(Mem_mu * memory, Window * window){
 };
 
 void Gb_ppu::draw_scanline(int line){
-	render_tiles(line);
-		/*
-		return;
-	BYTE control = m_memory->read(Mem_mu::io_port::LCDC);
-	if(control & 0x1){
-
-	};
-	//if((control >> 1) & 0x1)
-		render_sprites();
-		*/
+	if(m_lcd.wnbg_enabled())
+		render_tiles(line);
+	else
+		render_sprites(line);
 };
 
 void Gb_ppu::update_graphics(int elapsed_cycles){
@@ -159,7 +159,7 @@ void Gb_ppu::render_tiles(int scanline){
 		// build the pixel
 		BYTE pixel_value = tile_assemble_pixel(tile_addr, curr_x % 8, curr_y % 8); // get a pixel
 		// get the final color from palette
-		BYTE color = palette_get_color(pixel_value);
+		BYTE color = palette_get_color(pixel_value, Mem_mu::io_port::BGP);
 		BYTE red, green, blue;
 
 		switch (color){
@@ -190,13 +190,13 @@ BYTE Gb_ppu::tile_assemble_pixel(WORD tile_addr, WORD x, WORD y){
 	return lo | hi;
 };
 
-BYTE Gb_ppu::palette_get_color(BYTE color_index){
+BYTE Gb_ppu::palette_get_color(BYTE color_index, WORD palette_addr){
 	BYTE lo_bit = 0, hi_bit = 0;
 
 	lo_bit = (color_index * 2);
 	hi_bit = (color_index * 2) + 1;
 
-	BYTE palette = m_memory->read(Mem_mu::io_port::BGP);
+	BYTE palette = m_memory->read(palette_addr);
 
 	BYTE color = ((palette >> lo_bit) & 1) | (((palette >> hi_bit) & 1) << 1);
 
@@ -226,6 +226,69 @@ WORD Gb_ppu::pixel_find_tile(const WORD tilemap, BYTE pixel_x, BYTE pixel_y){
 
 	return offset;
 };
-// not implemented yet
-void Gb_ppu::render_sprites(){};
+
+void Gb_ppu::render_sprites(int line){
+	if(!m_lcd.obj_enabled()) return;
+	WORD sprite_table = m_lcd.oam_base();
+	const WORD tile_data = 0x8000;
+	for(int sprite = 0; sprite < 40; sprite++){
+		auto offset = sprite_table + (sprite * 4);
+		BYTE y_position = m_memory->read(offset) - 16;
+		BYTE x_position = m_memory->read(offset + 1) - 8;
+		BYTE tile_index = m_memory->read(offset + 2);
+		BYTE attribs = m_memory->read(offset + 3);
+
+		bool x_flip = (attribs >> 5) & 1;
+		bool y_flip = (attribs >> 6) & 1;
+
+		int width = m_lcd.obj_size() ? 16 : 8; // 8x8 or 8x16 sprites
+		// does the current line intercept with this sprite?
+		if(line >= y_position && line < y_position + width){
+			auto sprite_row = line - y_position;
+			sprite_row = y_flip ? (sprite_row - width) * -1 : sprite_row; // if y_flip read from bottom to top.
+
+			WORD tile_addr = (tile_data + (tile_index * 16)) + (sprite_row * 2);
+
+			BYTE b1 = m_memory->read(tile_addr);
+			BYTE b2 = m_memory->read(tile_addr + 1);
+
+			for(int pixel = 7; pixel >= 0; pixel--){
+				//
+				int bit = x_flip ? (pixel - 7) * -1 : pixel; // if x_flip read from right to left
+
+				int lo = (b1 >> bit) & 1;
+				int hi = ((b2 >> bit) & 1) << 1;
+
+				BYTE color_id = lo | hi;
+
+				WORD palette_addr = (attribs >> 4) & 1 ? Mem_mu::io_port::OBP1 : Mem_mu::io_port::OBP0;
+
+				BYTE pixel_color = palette_get_color(color_id, palette_addr);
+
+				if(pixel_color == 0) continue;
+
+				BYTE red, green, blue;
+
+				switch (pixel_color){
+					case 1: red = 0xcc; green = 0xcc; blue = 0xcc; break; // light grey
+					case 2: red = 0x77; green = 0x77; blue = 0x77; break; // dark grey
+					case 3: red = green = blue = 0; break; // black
+				}
+
+				int pixel_x = x_position + ((pixel - 7) * -1); // map [7, 0] to [0, 7]
+				auto vp_offset = ((line * VIEWPORT_WIDTH) + pixel_x) * 3;
+
+				m_viewport[vp_offset] = red;
+				m_viewport[vp_offset + 1] = green;
+				m_viewport[vp_offset + 2] = blue;
+
+
+			};
+
+		};
+
+
+	};
+	// WORD sprite_data = 0x8000;
+};
 
