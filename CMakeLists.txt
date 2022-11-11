@@ -8,7 +8,6 @@ set(CMAKE_BUILD_TYPE debug)
 include(GoogleTest)
 add_subdirectory(glfw)
 
-
 add_library(Gb_Emulator src/Gb_emulator.cpp
 						src/Memory.cpp
 						src/Gb_cartridge.cpp
