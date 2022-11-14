@@ -1,159 +1,108 @@
-#include "Memory.h"
 #include <iostream>
 #include <cstring>
+#include "Memory.h"
+#include "Gb_core.h"
+#include "Gb_ppu.h"
 
-Mem_mu::Mem_mu(){
-	memset(&m_memory, 0, sizeof(struct Gb_memory));
-    write(0xff10, 0x80);
-    write(0xff11, 0xbf);
-    write(0xff12, 0xf3);
-    write(0xff14, 0xbf);
-    write(0xff16, 0x3f);
-    write(0xff19, 0xbf);
-    write(0xff1a, 0x7f);
-    write(0xff1b, 0xff);
-    write(0xff1c, 0x9f);
-    write(0xff1e, 0xbf);
-    write(0xff20, 0xFf);
-    write(0xff23, 0xbf);
-    write(0xff24, 0x77);
-    write(0xff25, 0xf3);
-    write(0xff26, 0xf1);
-    write(0xff40, 0x91);
-    write(0xff47, 0xfc);
-    write(0xff48, 0xff);
-    write(0xff49, 0xff);
+static const BYTE bootrom[256] =
+{
+    0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
+    0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
+    0x47, 0x11, 0x04, 0x01, 0x21, 0x10, 0x80, 0x1A, 0xCD, 0x95, 0x00, 0xCD, 0x96, 0x00, 0x13, 0x7B,
+    0xFE, 0x34, 0x20, 0xF3, 0x11, 0xD8, 0x00, 0x06, 0x08, 0x1A, 0x13, 0x22, 0x23, 0x05, 0x20, 0xF9,
+    0x3E, 0x19, 0xEA, 0x10, 0x99, 0x21, 0x2F, 0x99, 0x0E, 0x0C, 0x3D, 0x28, 0x08, 0x32, 0x0D, 0x20,
+    0xF9, 0x2E, 0x0F, 0x18, 0xF3, 0x67, 0x3E, 0x64, 0x57, 0xE0, 0x42, 0x3E, 0x91, 0xE0, 0x40, 0x04,
+    0x1E, 0x02, 0x0E, 0x0C, 0xF0, 0x44, 0xFE, 0x90, 0x20, 0xFA, 0x0D, 0x20, 0xF7, 0x1D, 0x20, 0xF2,
+    0x0E, 0x13, 0x24, 0x7C, 0x1E, 0x83, 0xFE, 0x62, 0x28, 0x06, 0x1E, 0xC1, 0xFE, 0x64, 0x20, 0x06,
+    0x7B, 0xE2, 0x0C, 0x3E, 0x87, 0xE2, 0xF0, 0x42, 0x90, 0xE0, 0x42, 0x15, 0x20, 0xD2, 0x05, 0x20,
+    0x4F, 0x16, 0x20, 0x18, 0xCB, 0x4F, 0x06, 0x04, 0xC5, 0xCB, 0x11, 0x17, 0xC1, 0xCB, 0x11, 0x17,
+    0x05, 0x20, 0xF5, 0x22, 0x23, 0x22, 0x23, 0xC9, 0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B,
+    0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D, 0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
+    0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99, 0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC,
+    0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E, 0x3C, 0x42, 0xB9, 0xA5, 0xB9, 0xA5, 0x42, 0x3C,
+    0x21, 0x04, 0x01, 0x11, 0xA8, 0x00, 0x1A, 0x13, 0xBE, 0x20, 0xFE, 0x23, 0x7D, 0xFE, 0x34, 0x20,
+    0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
 };
 
 BYTE Mem_mu::read(WORD addr) const {
-	assert(m_cart != nullptr);
-
-	if(addr <= 0x7fff) return m_cart->read_rom(addr);
-	if(addr >= 0x8000 && addr <= 0x9fff) return m_memory.vram[addr - 0x8000];
-	if(addr >= 0xa000 && addr <= 0xbfff) return m_cart->read_ram(addr);
-	if(addr >= 0xc000 && addr <= 0xcfff) return m_memory.wram_bank0[addr - 0xc000];
-	if(addr >= 0xd000 && addr <= 0xdfff) return m_memory.wram_bank1n[addr - 0xd000];
+	if(m_dma_pending && (addr >= 0xfe00 && addr <= 0xfea0 )) return 0xff;
+	if(addr >= 0x8000 && addr <= 0x9fff) return m_vram[addr - 0x8000];
+	if(addr >= 0xc000 && addr <= 0xcfff) return m_wram[addr- 0xc000];
+	if(addr >= 0xd000 && addr <= 0xdfff) return m_wram2[addr - 0xd000]; // maybe moved to cart
 	if(addr >= 0xe000 && addr <= 0xfdff) return read_wram_mirror(addr);
+	if(addr >= 0xfe00 && addr <= 0xfe9f) return m_OAM[addr - 0xfe00];
 	if(addr >= 0xfea0 && addr <= 0xfeff) return 0x00;
-	if(addr >= 0xff00 && addr <= 0xff7f) return m_memory.io_registers[addr - 0xff00];
-	if(addr >= 0xff80 && addr <= 0xfffe) return m_memory.hram[addr - 0xff80];
-	if(addr == 0xffff){
-		return m_memory.ie_register;
-	};
-
+	if(addr >= 0xff80 && addr <= 0xfffe) return m_hram[addr - 0xff80];
 	std::cout << "read unimplemented " << std::hex << (unsigned int)addr << std::endl;
-	exit(1);
+	return 0xff;
 };
 
 BYTE Mem_mu::read_wram_mirror(WORD addr) const {
-	if(access_restricted(mem_region::WRAM)) return 0xff;
-
 	WORD offset = addr - 0x2000;
 	if(offset >= 0xc000 && offset <= 0xcfff)
-		return m_memory.wram_bank0[offset - 0xc000];
+		return m_wram[offset - 0xc000];
 	else{
-		return m_memory.wram_bank1n[offset - 0xd000];
+		return m_wram2[offset - 0xd000];
 	}
 }
 
 void Mem_mu::write_wram_mirror(WORD addr, BYTE value){
-	if(access_restricted(mem_region::WRAM)) return;
-
-	m_memory.wram_mirror[addr - 0xe000] = value;
 	// echo to work ram
 	WORD mem_offset = (addr - (0x2000));
 	if(mem_offset >= 0xc000 && mem_offset <= 0xcfff) 
-		m_memory.wram_bank0[mem_offset - 0xc000] = value;
+		m_wram[mem_offset - 0xc000] = value;
 	else if(mem_offset >= 0xd000 && mem_offset <= 0xdfff){
-		m_memory.wram_bank1n[mem_offset - 0xd000] = value;
+		m_wram2[mem_offset - 0xd000] = value;
 	}
-
 };
 
 void Mem_mu::write_wram(WORD addr, BYTE value){
-	//if(access_restricted(mem_region::WRAM)) return;
-
 	if(addr >= 0xc000 && addr <= 0xcfff)
-		m_memory.wram_bank0[addr - 0xc000] = value;
+		m_wram[addr - 0xc000] = value;
 	else if(addr >= 0xd000 && addr <= 0xdfff) 
-		m_memory.wram_bank1n[addr - 0xd000] = value;
-
-	// echo to mirror work ram
-	WORD mem_offset = addr + (1024 * 8);
-	if(mem_offset <= 0xfdff){
-		m_memory.wram_mirror[mem_offset - 0xe000] = value;
-	}
+		m_wram2[addr - 0xd000] = value;
 }
 
 void Mem_mu::write(WORD addr, BYTE value){
-	// dont allow writes to ROM memory
-	if(addr <= 0x7fff){
-		if(access_restricted(mem_region::ROM)) return;
-		m_cart->mbc_intercept(addr, value);
-	}
-	else if(addr >= 0x8000 && addr <= 0x9fff){
-		//if(access_restricted(mem_region::VRAM)) return;
-		m_memory.vram[addr - 0x8000] = value;
-	}
-	else if(addr >= 0xa000 && addr <= 0xbfff){
-		if(access_restricted(mem_region::EXRAM)) return;
-		m_cart->write(addr, value);
-	}
+	if(addr >= 0x8000 && addr <= 0x9fff) m_vram[addr - 0x8000] = value;
 	else if(addr >= 0xfea0 && addr <= 0xfeff) return; //prohibited
 	else if(addr >= 0xe000 && addr <= 0xfdff) write_wram_mirror(addr, value);
 	else if(addr >= 0xc000 && addr <= 0xdfff) write_wram(addr, value);
-	else if(addr >= 0xff00 && addr <= 0xff7f) handle_io_ports(addr, value);
-	else if(addr >= 0xff80 && addr <= 0xfffe){ // high ram
-		m_memory.hram[addr - 0xff80] = value;
-	}else if(addr == 0xffff){
-		m_memory.ie_register = value;
+	else if(addr >= 0xfe00 && addr <= 0xfe9f){
+		//int mode = read(io_port::STAT) & 0x3;
+		//if(mode == 0 || mode == 1)
+		m_OAM[addr - 0xfe00] = value;
+	}else if(addr >= 0xff80 && addr <= 0xfffe){ // high ram
+		m_hram[addr - 0xff80] = value;
 	}else{
 		std::cout << "write unimplemented " << std::hex << (unsigned int)addr << std::endl;
-		exit(1);
 	}
 };
 
-void Mem_mu::init(Gb_cartridge * cart, Gb_timer * timer){
-	m_cart = cart;
-	m_memory.io_registers[0x0044] = 0x90;
-	m_timer = timer;
+void Mem_mu::init(){
+	memset(m_vram, 0, 1024 * 8);
+	memset(m_hram, 0, 127);
+	memset(m_wram, 0, 1024 * 4);
+	memset(m_wram2, 0, 1024 * 4);
+	memset(m_OAM, 0, 40 * 4);
 };
 
-void Mem_mu::handle_io_ports(WORD addr, BYTE value){
-	// attemp to write to current scanline, resets it.
-	if(addr == io_port::LY){
-		m_memory.io_registers[addr - 0xff00] = 0;
-		return;
-	}else if(addr == io_port::DIV){ // divider
-		m_memory.io_registers[addr - 0xff00] = 0;
-		return;
-	}else if(addr == io_port::TAC){ // timer controller
-		auto prev_freq = read(io_port::TAC);
-		m_memory.io_registers[addr - 0xff00] = value;
+void Mem_mu::setup_DMA(unsigned char value){
+	if(m_dma_pending) return;
+	m_dma_pending = 160;
+	WORD DMA_src = value * 0x100;
+	DMA_transfer(DMA_src);
+};
 
-		if((prev_freq & 0x3) != (value & 0x3)){
-			m_timer->update_frequency();
-		}
-		return;
-	}else if(addr == 0xff46){ // DMA transfer
-		// raise access restriction to hram only
-		m_access_restrictions = 0xfe;
-		// since this byte holds src/0x100, multiply to get original src addr
-		// DMA transfer takes 160 cycles and during this time the cpu can only
-		// acess HRAM.
-		WORD src_addr = value * 0x100;
-		for(int i = 0; i < 160; i++){
-			m_memory.sprite_attr_table[i] = read(src_addr + i);
-		};
-		return;
-	}else if(addr >= 0xff10 && addr <= 0xff26){
-		// not implemented (sound modes and waves patterns)
-		return;
-	}else if(addr == io_port::SB){
-		m_memory.io_registers[0xff01 - 0xff00] = value;
-		std::cout << value << " ";
-		return;
-	}else{
-		m_memory.io_registers[addr - 0xff00] = value;
-	}
+void Mem_mu::DMA_transfer(WORD DMA_src){
+	if(DMA_src < 0xff80 && DMA_src > 0xfffe) return;
+	for(int i = 0; i < 160; i++){
+		m_OAM[i] = read(DMA_src + i);
+	};
+};
+
+void Mem_mu::update_DMA(int cycles){
+	if(!m_dma_pending) return;
+	m_dma_pending -= cycles;
+	m_dma_pending = m_dma_pending <= 0 ? 0 : m_dma_pending;
 };
