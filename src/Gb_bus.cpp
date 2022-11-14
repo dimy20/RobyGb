@@ -37,7 +37,7 @@ void Gb_bus::build_riomap(){
 	m_rmap[io_port::IE] = [this]()-> unsigned char { return m_intrs->IE(); };
 
 	m_rmap[io_port::LY] = [this]()-> unsigned char { return m_ppu->line(); };
-	m_rmap[io_port::DMA] = [this]()-> unsigned char{ return 0xff; };
+	m_rmap[io_port::DMA] = [this]()-> unsigned char{ return m_memory->dma_reg(); };
 
 	m_rmap[io_port::STAT] = [this]()-> unsigned char{ return m_lcd->status(); };
 	m_rmap[io_port::LCDC] = [this]()-> unsigned char{ return m_lcd->control(); };

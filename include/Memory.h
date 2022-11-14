@@ -24,16 +24,18 @@
  *
  * */
 
+class Gb_bus;
 class Mem_mu{
 	public:
 		Mem_mu() = default;
 		BYTE read(WORD addr) const;
 		void write(WORD addr, BYTE value);
-		void init();
+		void init(Gb_bus * bus);
 		void update_DMA(int cycles);
 		void debug();
 		void setup_DMA(unsigned char value);
 		constexpr int dma_pending() const { return m_dma_pending; };
+		constexpr unsigned char dma_reg() const { return m_dma_reg; };
 	private:
 		void write_wram_mirror(WORD addr, BYTE value);
 		void write_wram(WORD addr, BYTE value);
@@ -41,10 +43,17 @@ class Mem_mu{
 		void raise_restriction_hram_only(bool raise);
 		void DMA_transfer(WORD DMA_src);
 	private:
+		Gb_bus * m_bus;
 		unsigned char m_vram[1024 * 8];
 		unsigned char m_hram[127];
 		unsigned char m_wram[1024 * 4];
 		unsigned char m_wram2[1024 * 4];
 		unsigned char m_OAM[40 * 4];
+		unsigned char m_dma_reg = 0;
 		int m_dma_pending = 0;
+		unsigned short m_DMA_src;
+		bool m_dma_done = false;
+		bool m_dma_restarted;
+		int m_prev_cycles = 0;
+		bool m_dma_lastcycle = false;
 };

@@ -1,8 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include "Memory.h"
-#include "Gb_core.h"
-#include "Gb_ppu.h"
+#include "Gb_bus.h"
 
 static const BYTE bootrom[256] =
 {
@@ -25,12 +24,19 @@ static const BYTE bootrom[256] =
 };
 
 BYTE Mem_mu::read(WORD addr) const {
-	if(m_dma_pending && (addr >= 0xfe00 && addr <= 0xfea0 )) return 0xff;
+	// DMa edge cases.
+	if(addr >= 0xfe00 && addr <= 0xfea0){
+		if(m_dma_lastcycle){
+			return 0xff;
+		}
+		else if(m_dma_restarted) return 0xff;
+		else if(m_dma_pending == 0 || m_dma_pending >= (160 * 4)) return m_OAM[addr - 0xfe00];
+		else return 0xff;
+	}
 	if(addr >= 0x8000 && addr <= 0x9fff) return m_vram[addr - 0x8000];
 	if(addr >= 0xc000 && addr <= 0xcfff) return m_wram[addr- 0xc000];
 	if(addr >= 0xd000 && addr <= 0xdfff) return m_wram2[addr - 0xd000]; // maybe moved to cart
 	if(addr >= 0xe000 && addr <= 0xfdff) return read_wram_mirror(addr);
-	if(addr >= 0xfe00 && addr <= 0xfe9f) return m_OAM[addr - 0xfe00];
 	if(addr >= 0xfea0 && addr <= 0xfeff) return 0x00;
 	if(addr >= 0xff80 && addr <= 0xfffe) return m_hram[addr - 0xff80];
 	std::cout << "read unimplemented " << std::hex << (unsigned int)addr << std::endl;
@@ -69,8 +75,6 @@ void Mem_mu::write(WORD addr, BYTE value){
 	else if(addr >= 0xe000 && addr <= 0xfdff) write_wram_mirror(addr, value);
 	else if(addr >= 0xc000 && addr <= 0xdfff) write_wram(addr, value);
 	else if(addr >= 0xfe00 && addr <= 0xfe9f){
-		//int mode = read(io_port::STAT) & 0x3;
-		//if(mode == 0 || mode == 1)
 		m_OAM[addr - 0xfe00] = value;
 	}else if(addr >= 0xff80 && addr <= 0xfffe){ // high ram
 		m_hram[addr - 0xff80] = value;
@@ -79,30 +83,77 @@ void Mem_mu::write(WORD addr, BYTE value){
 	}
 };
 
-void Mem_mu::init(){
+void Mem_mu::init(Gb_bus * bus){
 	memset(m_vram, 0, 1024 * 8);
 	memset(m_hram, 0, 127);
 	memset(m_wram, 0, 1024 * 4);
 	memset(m_wram2, 0, 1024 * 4);
 	memset(m_OAM, 0, 40 * 4);
+	m_bus = bus;
 };
 
 void Mem_mu::setup_DMA(unsigned char value){
-	if(m_dma_pending) return;
-	m_dma_pending = 160;
-	WORD DMA_src = value * 0x100;
-	DMA_transfer(DMA_src);
+	m_dma_restarted = m_dma_pending > 0;
+	const int dma_delay = 8; // internal dma delay
+	m_dma_pending = (160 * 4) + dma_delay; // 160 machines cycles + 4 clock setup.
+	m_DMA_src = value * 0x100;
+	m_dma_done = false;
+	m_dma_reg = value;
 };
 
 void Mem_mu::DMA_transfer(WORD DMA_src){
 	if(DMA_src < 0xff80 && DMA_src > 0xfffe) return;
 	for(int i = 0; i < 160; i++){
-		m_OAM[i] = read(DMA_src + i);
+		m_OAM[i] = m_bus->read(DMA_src + i);
 	};
 };
 
 void Mem_mu::update_DMA(int cycles){
-	if(!m_dma_pending) return;
-	m_dma_pending -= cycles;
-	m_dma_pending = m_dma_pending <= 0 ? 0 : m_dma_pending;
+	if(m_prev_cycles > cycles) // an entire frame has elapsed
+		m_prev_cycles = 0;
+
+	int delta = cycles - m_prev_cycles;
+	m_prev_cycles = cycles;
+
+	if(!m_dma_pending){
+		m_dma_lastcycle = false;
+		return;
+	}
+
+	m_dma_pending -= delta;
+	if(m_dma_pending <= 0) // edge case: OAM read aligned with last DMA cycle.
+		m_dma_lastcycle = true;
+
+	if(!m_dma_done && (m_dma_pending >= 160 * 4)) // delay has not elpased yet.
+		return;
+
+	m_dma_restarted = false;
+
+	if(!m_dma_done){
+		DMA_transfer(m_DMA_src);
+		m_dma_done = true;
+	}else{
+		m_dma_pending = m_dma_pending <= 0 ? 0 : m_dma_pending;
+	}
 };
+
+void Mem_mu::debug(){
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
