@@ -9,14 +9,6 @@
 #define SIMPLE_BANKING_MODE 0x0
 #define RAM_BANKING_MODE 0x1
 
-struct cart_mbc{
-	// mbc registers
-	bool m_ram_enable;
-	BYTE m_rom_bank_number = 0;
-	BYTE m_ram_bank_number;
-	BYTE m_banking_mode;
-};
-
 class Gb_cartridge{
 	public:
 		// offsets in the cartridge header.
@@ -53,13 +45,23 @@ class Gb_cartridge{
 		/* Intercepts any writes to the range 0x0000-0x7fff (READ ONLY) and intercepts
 		 * the values according to the mbc type present on the cartridge.*/
 		void mbc_intercept(WORD addr, BYTE value);
-		cart_mbc mbc; // mbc chip
+		void mbc1(unsigned short addr, unsigned char value);
 	private:
 		BYTE m_memory[CARTRIDGE_MAX_SIZE];
 		BYTE m_ram[0x8000]; // max ram, 32kb max
 		void load_rom(const char * filename);
 		bool m_mbc1 = false;
 		bool m_mbc2 = false;
+		//unsigned char m_rombank_num;
+		//unsigned char m_rmabank_num;
+
+
+
+		bool m_ram_enabled;
+		int m_rom_banking_mode = 0;
+		int m_rombank_num = 1;
+		int m_rambank_num = 0;
+
 };
 
 
