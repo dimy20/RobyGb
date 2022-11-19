@@ -1,7 +1,55 @@
 #include "Window.h"
 
+void key_cb(GLFWwindow * window, int key, int scan_code, int action, int mods){
+	(void)scan_code;
+	(void)mods;
+	Window * m_window = static_cast<Window *>(glfwGetWindowUserPointer(window));
+	auto& directions = m_window->m_directions;
+	auto& buttons = m_window->m_buttons;
+	// direction key
+	if(directions.find(key) != directions.end()){
 
-void Window::init(){
+
+		if(action == GLFW_PRESS)
+			directions[key] = 1;
+		else if(action == GLFW_RELEASE)
+			directions[key] = 0;
+
+
+		// build P1's lower nible
+		unsigned char input_line = directions[GLFW_KEY_S] << 3 |
+								   directions[GLFW_KEY_W] << 2 |
+								   directions[GLFW_KEY_A] << 1 |
+								   directions[GLFW_KEY_D];
+
+		m_window->m_joypad->set_directions(input_line);
+
+	}else if(buttons.find(key) != buttons.end()){
+
+		if(action == GLFW_PRESS)
+			buttons[key] = 1;
+		else if(action == GLFW_RELEASE)
+			buttons[key] = 0;
+
+		unsigned char input_line = buttons[GLFW_KEY_ENTER] << 3 |
+								   buttons[GLFW_KEY_SPACE] << 2 |
+								   buttons[GLFW_KEY_K] << 1 |
+								   buttons[GLFW_KEY_L];
+
+
+		m_window->m_joypad->set_buttons(input_line);
+	}
+};
+
+void Window::build_keymap(){
+	m_directions[GLFW_KEY_D]  = 0;   /* right */  m_buttons[GLFW_KEY_L]     = 0; /* A */
+	m_directions[GLFW_KEY_A]  = 0;   /* left */   m_buttons[GLFW_KEY_K]     = 0; /* B */
+	m_directions[GLFW_KEY_W]  = 0;    /* up */    m_buttons[GLFW_KEY_SPACE] = 0; /* Select */
+	m_directions[GLFW_KEY_S]  = 0;   /* down */   m_buttons[GLFW_KEY_ENTER] = 0; /* Start */
+}
+
+void Window::init(Gb_joypad * joypad){
+	m_joypad = joypad;
 	glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -9,15 +57,19 @@ void Window::init(){
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	m_window = glfwCreateWindow(1024, 768, "RobyGb", NULL, NULL);
 
+
 	if(!m_window){
 	std::cerr << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
 		exit(EXIT_FAILURE);
 	}
 
+	glfwSetWindowUserPointer(m_window, this);
+	glfwSetKeyCallback(m_window, key_cb);
 	glfwMakeContextCurrent(m_window);
-	glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);  
-	//glfwSetCursorPosCallback(window, mouse_callback);  
+	build_keymap();
+	//glfwSetInputMode(m_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	//glfwSetCursorPosCallback(window, mouse_callback);
 
 	// verify that glad loads correctly
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)){

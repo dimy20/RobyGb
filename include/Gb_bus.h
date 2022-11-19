@@ -6,6 +6,7 @@
 #include "Gb_timer.h"
 #include "Gb_interrupts.h"
 #include "Gb_cartridge.h"
+#include "Gb_joypad.h"
 
 enum io_port{
 	P1 = 0Xff00,
@@ -29,15 +30,10 @@ enum io_port{
 	WX = 0xff4b, // x
 	DMA = 0xff46 //x
 };
-
-struct io_registers{
-
-};
-
 class Gb_bus{
 	public:
 		Gb_bus() = default;
-		void init(Mem_mu * memory, Gb_ppu * ppu, Gb_timer * timer, Gb_interrupts * intrs, Gb_lcd * lcd, Gb_cartridge * m_cart);
+		void init(Mem_mu * memory, Gb_ppu * ppu, Gb_timer * timer, Gb_interrupts * intrs, Gb_lcd * lcd, Gb_cartridge * m_cart, Gb_joypad * joypad);
 		void write(unsigned short addr, unsigned char value);
 		unsigned char read(unsigned short addr);
 	private:
@@ -50,7 +46,7 @@ class Gb_bus{
 		Gb_interrupts * m_intrs;
 		Gb_lcd * m_lcd;
 		Gb_cartridge * m_cart;
+		Gb_joypad * m_joypad;
 		std::unordered_map<unsigned short, std::function<void(unsigned char)>> m_wmap;
 		std::unordered_map<unsigned short, std::function<unsigned char(void)>> m_rmap;
-		struct io_registers m_io;
 };

@@ -3,6 +3,7 @@
 
 void Gb_bus::build_wiomap(){
 	// sys timer
+	m_wmap[io_port::P1] = [this](unsigned char value){ m_joypad->set_P1(value); };
 	m_wmap[io_port::TIMA] = [this](unsigned char value){ m_timer->set_TIMA(value); };
 	m_wmap[io_port::DIV] = [this](unsigned char value){ (void)value; m_timer->set_DIV(); };
 	m_wmap[io_port::TAC] = [this](unsigned char value){ m_timer->set_TAC(value); };
@@ -28,6 +29,8 @@ void Gb_bus::build_wiomap(){
 };
 
 void Gb_bus::build_riomap(){
+	m_rmap[io_port::P1] = [this]()-> unsigned char{ return m_joypad->P1(); };
+
 	m_rmap[io_port::TIMA] = [this]()-> unsigned char{ return m_timer->TIMA(); };
 	m_rmap[io_port::DIV] = [this]()-> unsigned char{  return m_timer->DIV(); };
 	m_rmap[io_port::TAC] = [this]()-> unsigned char{  return m_timer->TAC(); };
@@ -52,13 +55,14 @@ void Gb_bus::build_riomap(){
 };
 
 void Gb_bus::init(Mem_mu * memory, Gb_ppu * ppu, Gb_timer * timer, Gb_interrupts * intrs, 
-		Gb_lcd * lcd, Gb_cartridge * cart){
+		Gb_lcd * lcd, Gb_cartridge * cart, Gb_joypad * joypad){
 	m_timer = timer;
 	m_memory = memory;
 	m_ppu = ppu;
 	m_intrs = intrs;
 	m_lcd = lcd;
 	m_cart = cart;
+	m_joypad = joypad;
 	build_wiomap();
 	build_riomap();
 };
