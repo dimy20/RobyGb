@@ -1,121 +1,118 @@
 #include "Gb_ppu.h"
 
-void Lcd::init(Mem_mu * memory){
+void Gb_lcd::init(Mem_mu * memory, Gb_interrupts * intrs){
 	m_memory = memory;
+	m_intrs = intrs;
 }
 
-BYTE Lcd::status() const { return m_memory->read(Mem_mu::io_port::STAT); };
-BYTE Lcd::control() const { return m_memory->read(Mem_mu::io_port::LCDC); };
+BYTE Gb_lcd::obj_size() const{ return (control() >> 2) & 1; };
 
-bool Lcd::enabled() const{ return control() >> 7;};
-bool Lcd::window_enabled() const{ return control() & 0x20; };
-bool Lcd::obj_enabled() const {return control() & 0x02; };
-bool Lcd::wnbg_enabled() const {return control() & 1; };
-WORD Lcd::oam_base() const { return m_memory->read(0xfe00); };
-
-WORD Lcd::bg_tilemap() const{ return control() & 0x08 ? 0x9c00 : 0x9800; };
-WORD Lcd::wn_tilemap() const{ return control() & 0x40 ? 0x9c00 : 0x9800; };
-BYTE Lcd::window_x() const { return m_memory->read(Mem_mu::io_port::WX); };
-BYTE Lcd::window_y() const { return m_memory->read(Mem_mu::io_port::WY); };
-BYTE Lcd::scroll_x() const { return m_memory->read(Mem_mu::io_port::SCX); };
-BYTE Lcd::scroll_y() const { return m_memory->read(Mem_mu::io_port::SCY); };
-BYTE Lcd::obj_size() const{ return (control() >> 2) & 1; };
-
-void Lcd::fire_interrupt(intrp i) const {
-	auto intrp_flag = m_memory->read(IF_ADDR);
-	intrp_flag |= (0x1 << i);
-	m_memory->write(IF_ADDR, intrp_flag);
-};
-
-void Lcd::set_mode(const int mode) const {
+constexpr void Gb_lcd::set_mode(const int mode) {
 	assert(mode >=0 && mode <= 3);
-	BYTE stat = status();
-
-	stat &= 0xfc;
-	stat |= mode;
-
-	m_memory->write(Mem_mu::io_port::STAT, stat);
-
-	if(mode == 3) return;
-
-	// fire interrupt if sources for mode 2, 0 or 1 are set.
-	if((stat & 0x20) || (stat & 0x10) || (stat & 0x08)){
-		fire_interrupt(intrp::LCD);
-	}
+	m_stat &= 0xfc;
+	m_stat |= mode;
 };
 
-void Lcd::ly_compare(BYTE line){
-	BYTE lyc = m_memory->read(Mem_mu::io_port::LYC);
-	BYTE stat = status();
 
-	if(line == lyc){
-		stat |= 0x04;; // set coincidence
-		if(stat & 0x40){
-			fire_interrupt(intrp::LCD);
+
+void Gb_lcd::ly_compare(BYTE line){
+	if(line == m_lyc){
+		if(m_stat & 0x4) return;
+		m_stat |= 0x04;; // set coincidence
+		if(m_stat & 0x40){
+			m_intrs->request(1);
 		}
+	}else{
+		m_stat &= ~0x04;
 	}
 };
 
-WORD Lcd::tile_data() const{
+WORD Gb_lcd::tile_data() const{
 	return ((control() >> 4) & 1) ? 0x8000 : 0x9000;
 };
 
-void Gb_ppu::init(Mem_mu * memory, Window * window){
+void Gb_ppu::init(Mem_mu * memory, Window * window, Gb_interrupts * intrs){
 	m_memory = memory;
 	m_window = window;
+	m_intrs = intrs;
 	m_viewport = std::vector<unsigned char>(VIEWPORT_WIDTH * VIEWPORT_HEIGHT * 3, 0xff);
-	m_lcd.init(memory);
+	m_lcd.init(memory, m_intrs);
 };
 
 void Gb_ppu::draw_scanline(int line){
-	if(m_lcd.wnbg_enabled())
+	unsigned char control = m_lcd.control();
+	if(control & 1)
 		render_tiles(line);
-	else
+	if(control & 2)
 		render_sprites(line);
 };
 
 void Gb_ppu::update_graphics(int elapsed_cycles){
-
 	// takes 70224 clicks to render a frame
 	// takes 456 clicks to render an entire line
-	int current_frame = elapsed_cycles % 70224; // upper bound because it takes less
-	int line = current_frame / 456; // current line
+	int current_frame = m_reset ? 0 : elapsed_cycles % 70224;
+	if(m_reset) m_reset = false;
+
+	m_line = current_frame / 456; // current line
 
 	int clicks = current_frame % 456;
 
 	// edge case
 	if(!m_lcd.enabled()){
+		reset_line();
+		m_lcd.set_mode(Gb_lcd::mode::VBLANKM);
+		return;
 		// start drawing from line 0 again?
 		// set mode to vblank (1)
 		// return;
 	};
 
-	// direct access, writes to LY resets value back to 0.
-	if(line != m_prev_line)
-		m_memory->m_memory.io_registers[Mem_mu::io_port::LY - 0xff00] = line;
+	int prev_mode = m_mode;
 
-	//std::cout << line  << std::endl;
-	if(line < 144){
+	if(m_line < 144){
 		if(clicks <= 80){
-			m_lcd.set_mode(Lcd::mode::OAM);
+			m_lcd.set_mode(Gb_lcd::mode::OAM);
+			m_mode = 2;
 		}else if(clicks <= 289){
-			m_lcd.set_mode(Lcd::mode::VRAM);
+			m_lcd.set_mode(Gb_lcd::mode::VRAM);
+			m_mode = 3;
 		}else if(clicks < 456){
-			m_lcd.set_mode(Lcd::mode::HBLANK);
+			m_lcd.set_mode(Gb_lcd::mode::HBLANK);
+			m_mode = 0;
 		};
 
-		m_lcd.ly_compare(line);
+		m_lcd.ly_compare(m_line); // TODO this just fire the interrupt only once too.
+
+
+	}else if(m_line >= 144){
+		m_mode = 1;
+	}
+	// mode changed, request lcd interrupt
+	if(prev_mode != m_mode){
+		auto stat = m_lcd.status();
+		if(m_mode == 2 && (stat & 0x20)){
+			m_intrs->request(1);
+		}else if(m_mode == 0 && (stat & 0x08)){
+			m_intrs->request(1);
+		}else if(m_mode == 1 && (stat & 0x10)){
+			m_intrs->request(1);
+		}
 	}
 
-	if(line != m_prev_line && line < 144){
-		draw_scanline(line);
-		m_prev_line = line;
+	if(m_line != m_prev_line && m_line < 144){
+		draw_scanline(m_line);
+		m_prev_line = m_line;
 	};
 
-	// Render frame
-	if(line == 144){
-		m_lcd.set_mode(Lcd::mode::VBLANKM);
-		// send texture to opengl
+	// Etering Vblank, Render frame
+	if(m_prev_line != m_line && m_line == 144){
+		/*If bit 5 (mode 2 oam interrupt) is set when vblank starts an interrupts is also triggered*/
+		int stat = m_lcd.status();
+		if(stat & 0x20)
+			m_intrs->request(1);
+
+		m_lcd.set_mode(Gb_lcd::mode::VBLANKM);
+		m_intrs->request(0);
 		m_window->ppu_recv(m_viewport);
 	}
 
@@ -135,8 +132,8 @@ void Gb_ppu::render_tiles(int scanline){
 			m_viewport[offset + 2] = 0;
 		}else if(m_lcd.window_enabled()){
 			// top left position -> (7, 0);
-			BYTE wx = m_lcd.window_x() - 7;
-			BYTE wy = m_lcd.window_y();
+			BYTE wx = m_lcd.wx() - 7;
+			BYTE wy = m_lcd.wy();
 			if(scanline >= wy && scanline - wy < 144 && pixel_x >= wx){
 				// window pixel position relative to the viewport.
 				curr_x = pixel_x - wx;
@@ -146,8 +143,8 @@ void Gb_ppu::render_tiles(int scanline){
 		}else{
 			// pixel position in viewport relative to the background
 			// Wraps around if exceeds edges.
-			BYTE scy = m_lcd.scroll_y();
-			BYTE scx = m_lcd.scroll_x();
+			BYTE scy = m_lcd.scy();
+			BYTE scx = m_lcd.scx();
 			tile_map = m_lcd.bg_tilemap(); 
 
 			curr_x = (pixel_x + scx) % 256;
@@ -159,7 +156,7 @@ void Gb_ppu::render_tiles(int scanline){
 		// build the pixel
 		BYTE pixel_value = tile_assemble_pixel(tile_addr, curr_x % 8, curr_y % 8); // get a pixel
 		// get the final color from palette
-		BYTE color = palette_get_color(pixel_value, Mem_mu::io_port::BGP);
+		BYTE color = palette_get_color(pixel_value, m_lcd.BGP());
 		BYTE red, green, blue;
 
 		switch (color){
@@ -190,13 +187,11 @@ BYTE Gb_ppu::tile_assemble_pixel(WORD tile_addr, WORD x, WORD y){
 	return lo | hi;
 };
 
-BYTE Gb_ppu::palette_get_color(BYTE color_index, WORD palette_addr){
+BYTE Gb_ppu::palette_get_color(BYTE color_index, unsigned char palette){
 	BYTE lo_bit = 0, hi_bit = 0;
 
 	lo_bit = (color_index * 2);
 	hi_bit = (color_index * 2) + 1;
-
-	BYTE palette = m_memory->read(palette_addr);
 
 	BYTE color = ((palette >> lo_bit) & 1) | (((palette >> hi_bit) & 1) << 1);
 
@@ -229,10 +224,14 @@ WORD Gb_ppu::pixel_find_tile(const WORD tilemap, BYTE pixel_x, BYTE pixel_y){
 
 void Gb_ppu::render_sprites(int line){
 	if(!m_lcd.obj_enabled()) return;
-	WORD sprite_table = m_lcd.oam_base();
+
+	WORD sprite_table = 0xfe00;
 	const WORD tile_data = 0x8000;
+
 	for(int sprite = 0; sprite < 40; sprite++){
+
 		auto offset = sprite_table + (sprite * 4);
+
 		BYTE y_position = m_memory->read(offset) - 16;
 		BYTE x_position = m_memory->read(offset + 1) - 8;
 		BYTE tile_index = m_memory->read(offset + 2);
@@ -253,7 +252,6 @@ void Gb_ppu::render_sprites(int line){
 			BYTE b2 = m_memory->read(tile_addr + 1);
 
 			for(int pixel = 7; pixel >= 0; pixel--){
-				//
 				int bit = x_flip ? (pixel - 7) * -1 : pixel; // if x_flip read from right to left
 
 				int lo = (b1 >> bit) & 1;
@@ -261,9 +259,10 @@ void Gb_ppu::render_sprites(int line){
 
 				BYTE color_id = lo | hi;
 
-				WORD palette_addr = (attribs >> 4) & 1 ? Mem_mu::io_port::OBP1 : Mem_mu::io_port::OBP0;
+				unsigned char palette;
+				palette = (attribs >> 4) & 1 ? m_lcd.OBP1() : m_lcd.OBP0();
 
-				BYTE pixel_color = palette_get_color(color_id, palette_addr);
+				BYTE pixel_color = palette_get_color(color_id, palette);
 
 				if(pixel_color == 0) continue;
 
@@ -282,13 +281,8 @@ void Gb_ppu::render_sprites(int line){
 				m_viewport[vp_offset + 1] = green;
 				m_viewport[vp_offset + 2] = blue;
 
-
 			};
 
 		};
-
-
 	};
-	// WORD sprite_data = 0x8000;
 };
-
