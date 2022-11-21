@@ -16,6 +16,8 @@ add_library(Gb_Emulator src/Gb_emulator.cpp
 						src/Gb_timer.cpp
 						src/Window.cpp
 						src/Shader.cpp
+						src/Gb_bus.cpp
+						src/Gb_joypad.cpp
 						src/glad.c)
 target_compile_options(Gb_Emulator PRIVATE -Werror -Wall -Wextra)
 target_include_directories(Gb_Emulator PUBLIC 

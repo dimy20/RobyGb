@@ -92,7 +92,7 @@ void Gb_cartridge::write(WORD addr, BYTE value) {
 	assert(addr >= 0xa000 && addr <= 0xbfff && 
 								"External ram addr sould be in range 0xa000 - 0xbfff");
 
-	if(!m_ram_enabled) GB_DIE("Writing to disabled external ram.");
+	if(!m_ram_enabled) return;
 	BYTE offset = (addr - 0xa0000);
 	m_ram[offset + (m_rambank_num * 0x2000)] = value;
 };
@@ -108,8 +108,8 @@ BYTE Gb_cartridge::read_rom(WORD addr){
 BYTE Gb_cartridge::read_ram(WORD addr){
 	assert(addr >= 0xa000 && addr <= 0xbfff && 
 								"External ram addr sould be in range 0xa000 - 0xbfff");
+	if(!m_ram_enabled) return 0xff;
 
-	//if(!mbc.m_ram_enable) GB_DIE("Readig from disabled external ram.");
 	BYTE offset = addr - 0xa000;
 	return m_ram[offset + (m_rambank_num * 0x2000)];
 };

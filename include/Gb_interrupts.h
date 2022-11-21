@@ -16,6 +16,9 @@ class Gb_interrupts{
 		constexpr void ack(int i) { m_IF &= ~(1 << i); };
 
 		constexpr WORD src(int i) const;
+
+		// no interrupts enabled nor pending.
+		constexpr bool empty () const{ return !(m_IE & m_IF & 0x1f); };
 	private:
 		BYTE m_IE = 0;// Interrupt enable
 		BYTE m_IF = 0;// Interrupt flag (requests)

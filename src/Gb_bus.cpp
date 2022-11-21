@@ -80,6 +80,13 @@ void Gb_bus::write(unsigned short addr, unsigned char value){;
 			//std::cout << "I/O register " << std::hex << addr << " not supported." << std::endl;
 		}
 	}else{
+		unsigned char mode = m_lcd->mode();
+		if(mode == 3){
+			if(addr >= 0x8000 && addr <= 0x9fff) return;
+			if(addr >= 0xfe00 && addr <= 0xfe9f) return;
+		}else if(mode == 2){
+			if(addr >= 0xfe00 && addr <= 0xfe9f) return;
+		}
 		m_memory->write(addr, value);
 	}
 };
@@ -95,6 +102,13 @@ unsigned char Gb_bus::read(unsigned short addr){;
 			//std::cout << "I/O register " << std::hex << addr << " not supported." << std::endl;
 		}
 	}else{
+		unsigned char mode = m_lcd->mode();
+		if(mode == 3){
+			if(addr >= 0x8000 && addr <= 0x9fff) return 0xff;
+			if(addr >= 0xfe00 && addr <= 0xfe9f) return 0xff;
+		}else if(mode == 2){
+			if(addr >= 0xfe00 && addr <= 0xfe9f) return 0xff;
+		}
 		return m_memory->read(addr);
 	}
 

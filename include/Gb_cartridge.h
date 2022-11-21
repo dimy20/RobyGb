@@ -52,12 +52,7 @@ class Gb_cartridge{
 		void load_rom(const char * filename);
 		bool m_mbc1 = false;
 		bool m_mbc2 = false;
-		//unsigned char m_rombank_num;
-		//unsigned char m_rmabank_num;
-
-
-
-		bool m_ram_enabled;
+		bool m_ram_enabled = false;
 		int m_rom_banking_mode = 0;
 		int m_rombank_num = 1;
 		int m_rambank_num = 0;
