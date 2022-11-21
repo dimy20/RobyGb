@@ -3,10 +3,12 @@
 #include <memory>
 #include <variant>
 #include <vector>
-#include "Gb_types.h"
-#include "Memory.h"
 #include <functional>
-/* Screen */
+
+#include "Gb_types.h"
+#include "Gb_interrupts.h"
+#include "Gb_bus.h"
+
 #define SCREEN_WIDTH 160
 #define SCREEN_HEIGHT 144
 #define SCREEN_DEPTH 3
@@ -39,17 +41,15 @@ class Gb_core{
 		};
 	public:
 		Gb_core() = default;
-		Gb_core(Mem_mu * memory);
 		int execute_instruction();
-		void init();
+		void init(Gb_interrupts * intrs, Gb_bus * bus);
 		void handle_interrupts();
+		constexpr int cycles() const { return m_cycles; };
+		void log();
+
 
 	private:
 		void init_registers();
-
-
-
-
 		// alu handlers
 		void x8_alu_xor(BYTE r2);
 		void x8_alu_add(BYTE r2);
@@ -78,13 +78,12 @@ class Gb_core{
 		void ctrl_rst(const WORD offset);
 		void jmp_nn(bool cond);
 
-
 		void set_flag(flag f, bool set);
 		constexpr BYTE get_flag(flag f){ return (get_F() >> f) & 0x1; };
 		constexpr BYTE row(BYTE opcode){ return (opcode & 0xf0) >> 4; };
 		constexpr BYTE col(BYTE opcode){ return (opcode & 0x0f); };
 
-		void log();
+
 
 		constexpr void set_lower(WORD& r, BYTE value){ r &= 0xff00; r |= value; };
 		constexpr void set_upper(WORD& r, BYTE value){ r &= 0x00ff; r |= (value << 8);};
@@ -124,7 +123,7 @@ class Gb_core{
 		constexpr void set_DE(WORD value) { m_registers[1] = value; };
 		constexpr void set_HL(WORD value) { m_registers[2] = value; };
 		constexpr void set_AF(WORD value) { m_registers[3] = value; };
-		constexpr bool branch_decision(bool cond){ m_cycles++; return cond; };
+
 
 		void stack_push(BYTE value);
 		BYTE stack_pop();
@@ -145,8 +144,6 @@ class Gb_core{
 		BYTE res(BYTE r, BYTE b);
 		BYTE set(BYTE r, BYTE b);
 
-		void call_interrupt(intrp i);
-
 		void make_mappings();
 		void make_cb_mappings();
 
@@ -156,14 +153,19 @@ class Gb_core{
 		void opcode_0xf8();
 		
 		void halt();
-		bool interrups_pending() const;
+		constexpr bool branch_decision(bool cond){ m_cycles++; return cond; };
+
+		void EI();
+
+		unsigned char memory_read(unsigned short addr){ return m_bus->read(addr); }
+		void memory_write(unsigned short addr, unsigned char value){ m_bus->write(addr, value); }
 
 	private:
 		WORD m_registers[4];
 		WORD m_sp;
 		WORD m_pc = ENTRY_POINT;
-
-		Mem_mu * m_memory;
+		Gb_bus * m_bus;
+		Gb_interrupts * m_intrs;
 
 		bool m_interrupts_enabled = true;
 		std::function<void(void)> m_opcode_mat[16][16];
@@ -172,4 +174,6 @@ class Gb_core{
 		int m_cycles = 0;
 		bool m_halted = false;
 		bool m_haltbug = false;
+		bool m_EI_opcode = false;
+		int m_eidelay;
 };
